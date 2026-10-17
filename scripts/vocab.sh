@@ -25,8 +25,8 @@ PIP_BIN="${INSTALL_DIR}/venv/bin/pip"
 # Ensure running as root
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        echo -e "${RED}[!] این اسکریپت باید با دسترسی root اجرا شود.${NC}"
-        echo -e "لطفاً با دستور ${YELLOW}sudo vocab${NC} اجرا کنید."
+        echo -e "${RED}[!] This script must be run with root privileges.${NC}"
+        echo -e "Please run with: ${YELLOW}sudo vocab${NC}"
         exit 1
     fi
 }
@@ -46,7 +46,7 @@ show_banner() {
           |___/             |___/                             
 EOF
     echo -e "${PURPLE}  ======================================================${NC}"
-    echo -e "${YELLOW}  Nightly Vocab / LexiContext — ابزار مدیریت سرور (CLI)${NC}"
+    echo -e "${YELLOW}  Nightly Vocab / LexiContext — Server Management CLI${NC}"
     echo -e "${PURPLE}  ======================================================${NC}"
     echo ""
 }
@@ -54,120 +54,120 @@ EOF
 # Check Service Status
 check_status() {
     if systemctl is-active --quiet "${SERVICE_NAME}"; then
-        echo -e "  وضعیت سرویس: ${GREEN}● فعال و در حال اجرا (Active / Running)${NC}"
+        echo -e "  Service Status: ${GREEN}● Active (Running)${NC}"
     else
-        echo -e "  وضعیت سرویس: ${RED}○ متوقف شده (Inactive / Stopped)${NC}"
+        echo -e "  Service Status: ${RED}○ Inactive (Stopped)${NC}"
     fi
 
     if systemctl is-enabled --quiet "${SERVICE_NAME}" 2>/dev/null; then
-        echo -e "  اجرای خودکار: ${GREEN}فعال (Auto-start enabled)${NC}"
+        echo -e "  Auto-Start:     ${GREEN}Enabled${NC}"
     else
-        echo -e "  اجرای خودکار: ${YELLOW}غیرفعال (Disabled)${NC}"
+        echo -e "  Auto-Start:     ${YELLOW}Disabled${NC}"
     fi
 
     if [[ -f "${ENV_FILE}" ]]; then
-        local domain=$(grep -E "^DOMAIN=" "${ENV_FILE}" | cut -d '=' -f2- | tr -d ' "' || echo "تنظیم نشده")
-        echo -e "  دامنه سامانه: ${CYAN}https://${domain}${NC}"
+        local domain=$(grep -E "^DOMAIN=" "${ENV_FILE}" | cut -d '=' -f2- | tr -d ' "' || echo "Not configured")
+        echo -e "  System URL:     ${CYAN}https://${domain}${NC}"
     fi
     echo ""
 }
 
 # Start Service
 start_service() {
-    echo -e "${YELLOW}[*] در حال شروع سرویس...${NC}"
+    echo -e "${YELLOW}[*] Starting service...${NC}"
     systemctl start "${SERVICE_NAME}"
     sleep 2
     if systemctl is-active --quiet "${SERVICE_NAME}"; then
-        echo -e "${GREEN}[✓] سرویس با موفقیت اجرا شد.${NC}"
+        echo -e "${GREEN}[✓] Service started successfully.${NC}"
     else
-        echo -e "${RED}[!] خطا در اجرای سرویس. لاگ‌ها را بررسی کنید:${NC}"
+        echo -e "${RED}[!] Failed to start service. Check logs:${NC}"
         journalctl -u "${SERVICE_NAME}" -n 20 --no-pager
     fi
 }
 
 # Stop Service
 stop_service() {
-    echo -e "${YELLOW}[*] در حال توقف سرویس...${NC}"
+    echo -e "${YELLOW}[*] Stopping service...${NC}"
     systemctl stop "${SERVICE_NAME}"
-    echo -e "${GREEN}[✓] سرویس متوقف شد.${NC}"
+    echo -e "${GREEN}[✓] Service stopped.${NC}"
 }
 
 # Restart Service
 restart_service() {
-    echo -e "${YELLOW}[*] در حال راه‌اندازی مجدد سرویس...${NC}"
+    echo -e "${YELLOW}[*] Restarting service...${NC}"
     systemctl restart "${SERVICE_NAME}"
     sleep 2
     if systemctl is-active --quiet "${SERVICE_NAME}"; then
-        echo -e "${GREEN}[✓] سرویس با موفقیت راه‌اندازی مجدد شد.${NC}"
+        echo -e "${GREEN}[✓] Service restarted successfully.${NC}"
     else
-        echo -e "${RED}[!] خطا در راه‌اندازی مجدد سرویس.${NC}"
+        echo -e "${RED}[!] Failed to restart service.${NC}"
         journalctl -u "${SERVICE_NAME}" -n 20 --no-pager
     fi
 }
 
 # View Live Logs
 view_logs() {
-    echo -e "${CYAN}[*] در حال نمایش لاگ‌های زنده (برای خروج Ctrl+C را بزنید)...${NC}"
+    echo -e "${CYAN}[*] Streaming live logs (Press Ctrl+C to exit)...${NC}"
     sleep 1
     journalctl -u "${SERVICE_NAME}" -f -n 50
 }
 
 # Update from GitHub
 update_app() {
-    echo -e "${CYAN}${BOLD}[*] در حال بررسی و دریافت آخرین نسخه از گیت‌هاب...${NC}"
+    echo -e "${CYAN}${BOLD}[*] Checking and pulling latest release from GitHub...${NC}"
     if [[ ! -d "${INSTALL_DIR}/.git" ]]; then
-        echo -e "${RED}[!] پوشه نصب به گیت متصل نیست (${INSTALL_DIR}).${NC}"
+        echo -e "${RED}[!] Directory is not a git repository (${INSTALL_DIR}).${NC}"
         return 1
     fi
 
     cd "${INSTALL_DIR}"
     
-    # Save current changes if any
+    # Save local edits if any
     git stash >/dev/null 2>&1 || true
     
-    # Pull latest changes
-    echo -e "${YELLOW}[1/4] دریافت فایل‌های جدید (git pull)...${NC}"
+    # Pull latest commits
+    echo -e "${YELLOW}[1/4] Pulling latest updates (git pull)...${NC}"
     git pull origin main || git pull origin master
 
     # Update dependencies
-    echo -e "${YELLOW}[2/4] به‌روزرسانی کتابخانه‌های پایتون...${NC}"
+    echo -e "${YELLOW}[2/4] Updating Python dependencies...${NC}"
     ${PIP_BIN} install -q -r requirements.txt
 
     # Run migrations
-    echo -e "${YELLOW}[3/4] اعمال تغییرات دیتابیس (Migrations)...${NC}"
+    echo -e "${YELLOW}[3/4] Applying database migrations...${NC}"
     ${PYTHON_BIN} manage.py migrate --noinput --settings=config.settings.prod
 
     # Collect static files
-    echo -e "${YELLOW}[4/4] به‌روزرسانی فایل‌های استاتیک...${NC}"
+    echo -e "${YELLOW}[4/4] Updating static assets...${NC}"
     ${PYTHON_BIN} manage.py collectstatic --noinput --settings=config.settings.prod
 
     # Restart service
-    echo -e "${YELLOW}[*] راه‌اندازی مجدد سرویس...${NC}"
+    echo -e "${YELLOW}[*] Restarting service...${NC}"
     systemctl restart "${SERVICE_NAME}"
     
-    echo -e "${GREEN}${BOLD}[✓] به‌روزرسانی با موفقیت تکمیل شد! آخرین نسخه در حال اجراست.${NC}"
+    echo -e "${GREEN}${BOLD}[✓] Update completed successfully! Running the latest version.${NC}"
 }
 
 # Change Domain & SSL
 configure_ssl() {
-    echo -e "${CYAN}${BOLD}[*] تنظیم دامنه و گواهی رایگان SSL (Let's Encrypt)...${NC}"
-    read -rp "دامنه جدید خود را وارد کنید (مثال: vocab.domain.com): " NEW_DOMAIN
+    echo -e "${CYAN}${BOLD}[*] Configure Domain & SSL Certificate (Let's Encrypt)...${NC}"
+    read -rp "Enter new domain name (e.g. vocab.yourdomain.com): " NEW_DOMAIN
     NEW_DOMAIN=$(echo "${NEW_DOMAIN}" | tr -d ' ' | tr '[:upper:]' '[:lower:]')
 
     if [[ -z "${NEW_DOMAIN}" ]]; then
-        echo -e "${RED}[!] دامنه نمی‌تواند خالی باشد.${NC}"
+        echo -e "${RED}[!] Domain cannot be empty.${NC}"
         return 1
     fi
 
-    read -rp "یک آدرس ایمیل معتبر برای گواهی SSL وارد کنید: " SSL_EMAIL
+    read -rp "Enter email for SSL certificate (Enter = admin@${NEW_DOMAIN}): " SSL_EMAIL
     if [[ -z "${SSL_EMAIL}" ]]; then
         SSL_EMAIL="admin@${NEW_DOMAIN}"
     fi
 
-    echo -e "${YELLOW}[*] دریافت گواهی SSL برای ${NEW_DOMAIN}...${NC}"
+    echo -e "${YELLOW}[*] Obtaining SSL certificate for ${NEW_DOMAIN}...${NC}"
     systemctl stop nginx || true
     certbot certonly --standalone -d "${NEW_DOMAIN}" --non-interactive --agree-tos --email "${SSL_EMAIL}" || {
-        echo -e "${RED}[!] خطا در دریافت گواهی SSL. لطفاً اطمینان حاصل کنید رکورد A دامنه به این سرور متصل است و پورت ۸۰ باز است.${NC}"
+        echo -e "${RED}[!] Failed to obtain SSL certificate. Verify DNS A record points to this server and port 80 is open.${NC}"
         systemctl start nginx || true
         return 1
     }
@@ -223,53 +223,53 @@ EOF
     ln -sf "/etc/nginx/sites-available/nightly-vocab" "/etc/nginx/sites-enabled/nightly-vocab"
     nginx -t && systemctl restart nginx
     systemctl restart "${SERVICE_NAME}"
-    echo -e "${GREEN}[✓] دامنه با موفقیت تغییر کرد و گواهی SSL نصب شد: https://${NEW_DOMAIN}${NC}"
+    echo -e "${GREEN}[✓] Domain and SSL updated successfully: https://${NEW_DOMAIN}${NC}"
 }
 
 # Change AI and Bot Secrets
 configure_secrets() {
-    echo -e "${CYAN}${BOLD}[*] تنظیم توکن‌ها و کلیدهای سامانه${NC}"
-    echo -e "${YELLOW}(برای دست‌نخورده ماندن هر مقدار، فقط Enter بزنید)${NC}\n"
+    echo -e "${CYAN}${BOLD}[*] Configure API Keys & System Secrets${NC}"
+    echo -e "${YELLOW}(Press Enter to leave any value unchanged)${NC}\n"
 
-    read -rp "کلید هوش مصنوعی Google Gemini API Key: " NEW_GEMINI
-    if [[ -n "${NEW_GEMINI}" ]]; then
-        sed -i "s|^GEMINI_API_KEY=.*|GEMINI_API_KEY=${NEW_GEMINI}|" "${ENV_FILE}"
-        echo -e "${GREEN}[✓] کلید هوش مصنوعی ذخیره شد.${NC}"
+    read -rp "Google Gemini API Key: " NEW_AI_KEY
+    if [[ -n "${NEW_AI_KEY}" ]]; then
+        sed -i "s|^GEMINI_API_KEY=.*|GEMINI_API_KEY=${NEW_AI_KEY}|" "${ENV_FILE}"
+        echo -e "${GREEN}[✓] Gemini API Key saved.${NC}"
     fi
 
-    read -rp "توکن ربات تلگرام (Telegram Bot Token): " NEW_TG_TOKEN
+    read -rp "Telegram Bot Token: " NEW_TG_TOKEN
     if [[ -n "${NEW_TG_TOKEN}" ]]; then
         sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=${NEW_TG_TOKEN}|" "${ENV_FILE}"
-        echo -e "${GREEN}[✓] توکن ربات تلگرام ذخیره شد.${NC}"
+        echo -e "${GREEN}[✓] Telegram Bot Token saved.${NC}"
     fi
 
-    read -rp "آیدی ربات تلگرام (با @، مثلا @NightlyVocabBot): " NEW_TG_USER
+    read -rp "Telegram Bot Username (e.g. @NightlyVocabBot): " NEW_TG_USER
     if [[ -n "${NEW_TG_USER}" ]]; then
         [[ "${NEW_TG_USER}" != @* ]] && NEW_TG_USER="@${NEW_TG_USER}"
         sed -i "s|^TELEGRAM_BOT_USERNAME=.*|TELEGRAM_BOT_USERNAME=${NEW_TG_USER}|" "${ENV_FILE}"
-        echo -e "${GREEN}[✓] آیدی ربات تلگرام ذخیره شد.${NC}"
+        echo -e "${GREEN}[✓] Telegram Bot Username saved.${NC}"
     fi
 
-    read -rp "شناسه Google OAuth Client ID: " NEW_G_ID
+    read -rp "Google OAuth Client ID: " NEW_G_ID
     if [[ -n "${NEW_G_ID}" ]]; then
         sed -i "s|^GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=${NEW_G_ID}|" "${ENV_FILE}"
-        echo -e "${GREEN}[✓] شناسه Google Client ID ذخیره شد.${NC}"
+        echo -e "${GREEN}[✓] Google Client ID saved.${NC}"
     fi
 
-    read -rp "کلید رمز Google OAuth Client Secret: " NEW_G_SECRET
+    read -rp "Google OAuth Client Secret: " NEW_G_SECRET
     if [[ -n "${NEW_G_SECRET}" ]]; then
         sed -i "s|^GOOGLE_CLIENT_SECRET=.*|GOOGLE_CLIENT_SECRET=${NEW_G_SECRET}|" "${ENV_FILE}"
-        echo -e "${GREEN}[✓] کلید Google Client Secret ذخیره شد.${NC}"
+        echo -e "${GREEN}[✓] Google Client Secret saved.${NC}"
     fi
 
-    read -rp "کد تایید Google Search Console: " NEW_G_VERIFY
+    read -rp "Google Search Console Verification Code: " NEW_G_VERIFY
     if [[ -n "${NEW_G_VERIFY}" ]]; then
         if grep -q "^GOOGLE_SITE_VERIFICATION=" "${ENV_FILE}"; then
             sed -i "s|^GOOGLE_SITE_VERIFICATION=.*|GOOGLE_SITE_VERIFICATION=${NEW_G_VERIFY}|" "${ENV_FILE}"
         else
             echo "GOOGLE_SITE_VERIFICATION=${NEW_G_VERIFY}" >> "${ENV_FILE}"
         fi
-        echo -e "${GREEN}[✓] کد تایید سرچ کنسول ذخیره شد.${NC}"
+        echo -e "${GREEN}[✓] Google Search Console verification code saved.${NC}"
     fi
 
     # Sync to SiteConfig in database
@@ -296,21 +296,21 @@ cfg.sync_google_social_app()
 PYEOF
 
     systemctl restart "${SERVICE_NAME}"
-    echo -e "\n${GREEN}[✓] تمامی تغییرات ذخیره، همگام‌سازی و سرویس بازنشانی شد.${NC}"
+    echo -e "\n${GREEN}[✓] All secrets saved, synced with database, and service restarted.${NC}"
 }
 
 # Create Superuser / Change Admin Password
 manage_admin() {
-    echo -e "${CYAN}${BOLD}[*] مدیریت حساب مدیر ارشد (Superuser)${NC}"
-    echo "1) ایجاد کاربر مدیر جدید"
-    echo "2) تغییر رمز عبور کاربر مدیر موجود"
-    read -rp "انتخاب شما [1-2]: " ADMIN_OPT
+    echo -e "${CYAN}${BOLD}[*] Superuser Administration${NC}"
+    echo "1) Create a new superuser account"
+    echo "2) Change password of an existing user"
+    read -rp "Select option [1-2]: " ADMIN_OPT
 
     cd "${INSTALL_DIR}"
     if [[ "${ADMIN_OPT}" == "1" ]]; then
         ${PYTHON_BIN} manage.py createsuperuser --settings=config.settings.prod
     elif [[ "${ADMIN_OPT}" == "2" ]]; then
-        read -rp "نام کاربری یا ایمیل مدیر: " ADMIN_UNAME
+        read -rp "Enter username or email: " ADMIN_UNAME
         ${PYTHON_BIN} manage.py changepassword "${ADMIN_UNAME}" --settings=config.settings.prod
     fi
 }
@@ -322,7 +322,7 @@ backup_data() {
     local TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
     local BACKUP_FILE="${BACKUP_DIR}/vocab_backup_${TIMESTAMP}.tar.gz"
 
-    echo -e "${YELLOW}[*] در حال تهیه نسخه پشتیبان کامل...${NC}"
+    echo -e "${YELLOW}[*] Creating full backup archive...${NC}"
     cd "${INSTALL_DIR}"
     tar -czf "${BACKUP_FILE}" \
         --exclude='venv' \
@@ -330,14 +330,14 @@ backup_data() {
         --exclude='__pycache__' \
         .env db.sqlite3 media/ 2>/dev/null || true
 
-    echo -e "${GREEN}[✓] نسخه پشتیبان در مسیر زیر ذخیره شد:${NC}"
+    echo -e "${GREEN}[✓] Backup archive successfully created at:${NC}"
     echo -e "    ${CYAN}${BACKUP_FILE}${NC}"
 }
 
 # Uninstall
 uninstall_app() {
-    echo -e "${RED}${BOLD}[!] هشدار: این عملیات سامانه Nightly Vocab و سرویس آن را حذف می‌کند.${NC}"
-    read -rp "آیا مطمئن هستید؟ (y/N): " CONFIRM
+    echo -e "${RED}${BOLD}[!] WARNING: This will terminate and remove the Nightly Vocab system and services.${NC}"
+    read -rp "Are you sure you want to proceed? (y/N): " CONFIRM
     if [[ "${CONFIRM}" =~ ^[Yy]$ ]]; then
         systemctl stop "${SERVICE_NAME}" || true
         systemctl disable "${SERVICE_NAME}" || true
@@ -347,16 +347,16 @@ uninstall_app() {
         rm -f "/usr/local/bin/vocab"
         systemctl daemon-reload
         systemctl restart nginx || true
-        echo -e "${YELLOW}آیا مایل به حذف کامل فایل‌ها و پایگاه‌داده در ${INSTALL_DIR} هستید؟ (y/N): ${NC}"
+        echo -e "${YELLOW}Do you also want to permanently delete all project files and database in ${INSTALL_DIR}? (y/N): ${NC}"
         read -rp "" DEL_DATA
         if [[ "${DEL_DATA}" =~ ^[Yy]$ ]]; then
             rm -rf "${INSTALL_DIR}"
-            echo -e "${GREEN}[✓] فایل‌ها به طور کامل حذف شدند.${NC}"
+            echo -e "${GREEN}[✓] Files permanently deleted.${NC}"
         fi
-        echo -e "${GREEN}[✓] سامانه با موفقیت غیرفعال و حذف گردید.${NC}"
+        echo -e "${GREEN}[✓] Nightly Vocab has been successfully uninstalled.${NC}"
         exit 0
     else
-        echo -e "${YELLOW}[*] عملیات لغو شد.${NC}"
+        echo -e "${YELLOW}[*] Uninstallation cancelled.${NC}"
     fi
 }
 
@@ -366,34 +366,34 @@ main_menu() {
     while true; do
         show_banner
         check_status
-        echo -e "${BOLD}منوی مدیریت:${NC}"
-        echo -e "  ${GREEN}1)${NC} شروع سرویس (Start)"
-        echo -e "  ${RED}2)${NC} توقف سرویس (Stop)"
-        echo -e "  ${YELLOW}3)${NC} راه‌اندازی مجدد سرویس (Restart)"
-        echo -e "  ${CYAN}4)${NC} مشاهده لاگ‌های زنده (Live Logs)"
-        echo -e "  ${PURPLE}5)${NC} به‌روزرسانی سامانه از گیت‌هاب (Update from GitHub)"
-        echo -e "  ${BLUE}6)${NC} تغییر دامنه و تمدید SSL (Domain & SSL)"
-        echo -e "  ${YELLOW}7)${NC} تنظیم توکن ربات، هوش مصنوعی و گوگل (API Keys & Secrets)"
-        echo -e "  ${CYAN}8)${NC} ایجاد یا تغییر رمز مدیر ارشد (Admin User)"
-        echo -e "  ${GREEN}9)${NC} پشتیبان‌گیری از داده‌ها (Backup)"
-        echo -e "  ${RED}10)${NC} حذف کامل سامانه (Uninstall)"
-        echo -e "  ${BOLD}0)${NC} خروج (Exit)"
+        echo -e "${BOLD}Management Menu:${NC}"
+        echo -e "  ${GREEN}1)${NC} Start service"
+        echo -e "  ${RED}2)${NC} Stop service"
+        echo -e "  ${YELLOW}3)${NC} Restart service"
+        echo -e "  ${CYAN}4)${NC} View live logs"
+        echo -e "  ${PURPLE}5)${NC} Update system from GitHub"
+        echo -e "  ${BLUE}6)${NC} Change domain & SSL"
+        echo -e "  ${YELLOW}7)${NC} Configure API keys & secrets"
+        echo -e "  ${CYAN}8)${NC} Manage admin account"
+        echo -e "  ${GREEN}9)${NC} Backup database & media"
+        echo -e "  ${RED}10)${NC} Uninstall system"
+        echo -e "  ${BOLD}0)${NC} Exit"
         echo ""
-        read -rp "لطفاً یک گزینه را انتخاب کنید [0-10]: " CHOICE
+        read -rp "Please select an option [0-10]: " CHOICE
 
         case "${CHOICE}" in
-            1) start_service; read -rp "برای ادامه Enter بزنید..." ;;
-            2) stop_service; read -rp "برای ادامه Enter بزنید..." ;;
-            3) restart_service; read -rp "برای ادامه Enter بزنید..." ;;
+            1) start_service; read -rp "Press Enter to continue..." ;;
+            2) stop_service; read -rp "Press Enter to continue..." ;;
+            3) restart_service; read -rp "Press Enter to continue..." ;;
             4) view_logs ;;
-            5) update_app; read -rp "برای ادامه Enter بزنید..." ;;
-            6) configure_ssl; read -rp "برای ادامه Enter بزنید..." ;;
-            7) configure_secrets; read -rp "برای ادامه Enter بزنید..." ;;
-            8) manage_admin; read -rp "برای ادامه Enter بزنید..." ;;
-            9) backup_data; read -rp "برای ادامه Enter بزنید..." ;;
+            5) update_app; read -rp "Press Enter to continue..." ;;
+            6) configure_ssl; read -rp "Press Enter to continue..." ;;
+            7) configure_secrets; read -rp "Press Enter to continue..." ;;
+            8) manage_admin; read -rp "Press Enter to continue..." ;;
+            9) backup_data; read -rp "Press Enter to continue..." ;;
             10) uninstall_app ;;
-            0) echo -e "${GREEN}روز خوبی داشته باشید!${NC}"; exit 0 ;;
-            *) echo -e "${RED}[!] گزینه نامعتبر است.${NC}"; sleep 1 ;;
+            0) echo -e "${GREEN}Have a great day!${NC}"; exit 0 ;;
+            *) echo -e "${RED}[!] Invalid option.${NC}"; sleep 1 ;;
         esac
     done
 }
@@ -413,7 +413,7 @@ if [[ $# -gt 0 ]]; then
         backup) backup_data ;;
         admin|user) manage_admin ;;
         uninstall) uninstall_app ;;
-        *) echo "دستور نامعتبر. از 'vocab' برای منوی گرافیکی استفاده کنید." ;;
+        *) echo "Unknown command. Run 'vocab' to open the interactive management menu." ;;
     esac
 else
     main_menu

@@ -226,19 +226,19 @@ vocab
 
 ```text
   ======================================================
-  Nightly Vocab / LexiContext — ابزار مدیریت سرور (CLI)
+  Nightly Vocab / LexiContext — Server Management CLI
   ======================================================
-  1) شروع سرویس (Start)
-  2) توقف سرویس (Stop)
-  3) راه‌اندازی مجدد سرویس (Restart)
-  4) مشاهده لاگ‌های زنده (Live Logs)
-  5) به‌روزرسانی سامانه از گیت‌هاب (Update from GitHub)
-  6) تغییر دامنه و تمدید SSL (Domain & SSL)
-  7) تنظیم توکن ربات، هوش مصنوعی و گوگل (API Keys & Secrets)
-  8) ایجاد یا تغییر رمز مدیر ارشد (Admin User)
-  9) پشتیبان‌گیری از داده‌ها (Backup)
-  10) حذف کامل سامانه (Uninstall)
-  0) خروج (Exit)
+  1) Start service
+  2) Stop service
+  3) Restart service
+  4) View live logs
+  5) Update system from GitHub
+  6) Change domain & SSL
+  7) Configure API keys & secrets
+  8) Manage admin account
+  9) Backup database & media
+  10) Uninstall system
+  0) Exit
 ```
 
 دستورات مستقیم سریع:
