@@ -104,7 +104,7 @@ def generate_system_backup_dict() -> Dict[str, Any]:
         })
 
     return {
-        "export_type": "lexicontext_system_full_backup",
+        "export_type": "nightly_vocab_system_full_backup",
         "version": "1.0",
         "created_at": timezone.now().isoformat(),
         "site_config": site_config_data,
@@ -168,7 +168,7 @@ def restore_system_backup(data: Dict[str, Any]) -> Dict[str, int]:
     Restores the complete database state from the uploaded JSON backup.
     Runs atomically.
     """
-    if data.get("export_type") != "lexicontext_system_full_backup":
+    if data.get("export_type") not in ("nightly_vocab_system_full_backup", "lexicontext_system_full_backup"):
         raise ValueError("قالب فایل پشتیبان نامعتبر است (نوع فایل پشتیبان سیستم نیست).")
 
     stats = {"users": 0, "texts": 0, "cards": 0}
@@ -312,7 +312,7 @@ def generate_user_backup_dict(user: User) -> Dict[str, Any]:
         })
 
     return {
-        "export_type": "lexicontext_user_personal_data",
+        "export_type": "nightly_vocab_user_personal_data",
         "version": "1.0",
         "exported_at": timezone.now().isoformat(),
         "user_email": user.email or user.username,
@@ -326,7 +326,12 @@ def restore_user_backup(user: User, data: Dict[str, Any]) -> Dict[str, int]:
     Imports vocabulary and texts into the specified user's account safely.
     Does not touch other accounts or user settings.
     """
-    if data.get("export_type") not in ("lexicontext_user_personal_data", "lexicontext_system_full_backup"):
+    if data.get("export_type") not in (
+        "nightly_vocab_user_personal_data",
+        "nightly_vocab_system_full_backup",
+        "lexicontext_user_personal_data",
+        "lexicontext_system_full_backup",
+    ):
         raise ValueError("فرمت فایل پشتیبان نامعتبر است.")
 
     stats = {"texts": 0, "cards": 0}

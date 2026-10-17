@@ -1,4 +1,4 @@
-# Production Dockerfile for Nightly Vocab / LexiContext
+# Production Dockerfile for Nightly Vocab
 FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

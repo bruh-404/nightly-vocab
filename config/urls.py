@@ -16,7 +16,7 @@ def home_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect("accounts:dashboard")
     return render(request, "home.html", {
-        "title": "Nightly Vocab | LexiContext",
+        "title": "Nightly Vocab",
         "debug": settings.DEBUG,
     })
 

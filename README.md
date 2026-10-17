@@ -2,7 +2,7 @@
 
 <img src="static/img/logo.png" alt="Nightly Vocab Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);" />
 
-# Nightly Vocab / LexiContext
+# Nightly Vocab
 
 **Contextual English Vocabulary Acquisition System with 8-Stage Spaced Repetition (SRS), Google Gemini AI, Multi-accent Pronunciation, Telegram Bot Integration & Super-Admin Control Panel.**
 
@@ -47,7 +47,7 @@ Like modern server management panels (e.g., Sanaei x-ui), Nightly Vocab includes
 Run the following command on your fresh Ubuntu / Debian server as **root**:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/bruh-404/lexicontext/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/bruh-404/nightly-vocab/main/install.sh)
 ```
 
 The installer will guide you interactively through:
@@ -68,7 +68,7 @@ vocab
 This launches the interactive terminal menu:
 ```
   ======================================================
-  Nightly Vocab / LexiContext — Server Management CLI
+  Nightly Vocab — Server Management CLI
   ======================================================
   1) Start Service
   2) Stop Service
@@ -154,7 +154,7 @@ gunzip < /var/backups/lexicontext/lexicontext_db_latest.sql.gz | psql -U lexi -h
 Das automatisierte Installationsskript richtet die gesamte Umgebung (Nginx, Let's Encrypt SSL, Systemd-Dienst, Python-Virtualenv) ohne Konflikte mit bestehenden Diensten ein:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/bruh-404/lexicontext/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/bruh-404/nightly-vocab/main/install.sh)
 ```
 
 ### 🛠️ CLI-Verwaltungstool (`vocab`)
@@ -204,7 +204,7 @@ Optionen umfassen Dienststatus, automatische Aktualisierung von GitHub (`vocab u
 تنها با اجرای دستور زیر بر روی سرور اوبونتو یا دبیان خام (با دسترسی root):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/bruh-404/lexicontext/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/bruh-404/nightly-vocab/main/install.sh)
 ```
 
 مراحل اسکریپت به صورت تعاملی و فارسی:

@@ -1,4 +1,4 @@
-"""Base settings for Nightly Vocab / LexiContext."""
+"""Base settings for Nightly Vocab."""
 from pathlib import Path
 
 import environ

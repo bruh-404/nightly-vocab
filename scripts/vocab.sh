@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Nightly Vocab / LexiContext — Server Management CLI (vocab)
+# Nightly Vocab — Server Management CLI (vocab)
 # Inspired by Sanaei x-ui management CLI
 # ==============================================================================
 
@@ -46,7 +46,7 @@ show_banner() {
           |___/             |___/                             
 EOF
     echo -e "${PURPLE}  ======================================================${NC}"
-    echo -e "${YELLOW}  Nightly Vocab / LexiContext — Server Management CLI${NC}"
+    echo -e "${YELLOW}  Nightly Vocab — Server Management CLI${NC}"
     echo -e "${PURPLE}  ======================================================${NC}"
     echo ""
 }

@@ -423,7 +423,7 @@ def telegram_webhook_view(request: HttpRequest) -> JsonResponse:
                 else:
                     client.send_message(
                         chat_id=chat_id,
-                        text="سلام! برای اتصال این ربات به حساب کاربری خود در سامانه <b>LexiContext</b>، لطفاً وارد بخش تنظیمات در وب‌سایت شده و روی «اتصال به تلگرام» کلیک کنید.",
+                        text="سلام! برای اتصال این ربات به حساب کاربری خود در سامانه <b>Nightly Vocab</b>، لطفاً وارد بخش تنظیمات در وب‌سایت شده و روی «اتصال به تلگرام» کلیک کنید.",
                     )
 
         elif text.startswith("/stop"):
@@ -528,7 +528,7 @@ def telegram_webhook_view(request: HttpRequest) -> JsonResponse:
             else:
                 client.send_message(
                     chat_id=chat_id,
-                    text="سلام! برای اتصال این ربات به حساب کاربری خود در سامانه <b>LexiContext</b>، لطفاً وارد پنل کاربری در وب‌سایت شده و در بخش تنظیمات روی «اتصال به تلگرام» کلیک کنید.",
+                    text="سلام! برای اتصال این ربات به حساب کاربری خود در سامانه <b>Nightly Vocab</b>، لطفاً وارد پنل کاربری در وب‌سایت شده و در بخش تنظیمات روی «اتصال به تلگرام» کلیک کنید.",
                 )
 
     except BotBlocked:

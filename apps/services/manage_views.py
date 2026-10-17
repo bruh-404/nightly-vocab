@@ -124,7 +124,7 @@ def manage_dashboard_view(request: HttpRequest) -> HttpResponse:
             "tg_connected_users": tg_connected_users,
             "tg_messages_today": tg_messages_today,
             "recent_logs": recent_logs,
-            "title": "داشبورد مدیریت سامانه | LexiContext",
+            "title": "داشبورد مدیریت سامانه | Nightly Vocab",
         },
     )
 
@@ -417,7 +417,7 @@ def manage_users_view(request: HttpRequest) -> HttpResponse:
 def manage_users_export_csv(request: HttpRequest) -> HttpResponse:
     """Exports user statistics as UTF-8 CSV with BOM for Excel compatibility."""
     response = HttpResponse(content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = 'attachment; filename="lexicontext_users.csv"'
+    response["Content-Disposition"] = 'attachment; filename="nightly_vocab_users.csv"'
     response.write("\ufeff")  # UTF-8 BOM
 
     writer = csv.writer(response)
@@ -700,7 +700,7 @@ def manage_download_backup_view(request: HttpRequest) -> HttpResponse:
     backup_bytes = generate_system_backup_bytes()
     now_str = timezone.now().strftime("%Y-%m-%d_%H%M")
     response = HttpResponse(backup_bytes, content_type="application/json")
-    response["Content-Disposition"] = f'attachment; filename="lexicontext_backup_{now_str}.json"'
+    response["Content-Disposition"] = f'attachment; filename="nightly_vocab_backup_{now_str}.json"'
     return response
 
 

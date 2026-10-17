@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Nightly Vocab / LexiContext — Automated Database Backup Script
+# Nightly Vocab — Automated Database Backup Script
 # Keeps the last 14 daily backups and purges older archives.
 # Recommended cron entry (runs every night at 03:00 AM):
 # 0 3 * * * /home/ubuntu/lexicontext/deploy/backup.sh >> /home/ubuntu/lexicontext/backups/backup.log 2>&1

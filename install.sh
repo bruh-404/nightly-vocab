@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Nightly Vocab / LexiContext — One-Click Automated Installer (install.sh)
+# Nightly Vocab — One-Click Automated Installer (install.sh)
 # Inspired by Sanaei x-ui automated deployment scripts
 #
 # Usage:
@@ -23,7 +23,7 @@ NC='\033[0m'
 
 INSTALL_DIR="/opt/nightly-vocab"
 SERVICE_NAME="nightly-vocab"
-REPO_URL="https://github.com/bruh-404/lexicontext.git"
+REPO_URL="https://github.com/bruh-404/nightly-vocab.git"
 
 # 1. Check Root Privileges
 if [[ $EUID -ne 0 ]]; then
@@ -243,7 +243,7 @@ PYEOF
 echo -e "${CYAN}[*] ایجاد سرویس سیستمی (${SERVICE_NAME}.service)...${NC}"
 cat > "/etc/systemd/system/${SERVICE_NAME}.service" << EOF
 [Unit]
-Description=Nightly Vocab / LexiContext Web Service
+Description=Nightly Vocab Web Service
 After=network.target
 
 [Service]
