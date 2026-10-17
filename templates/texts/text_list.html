@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}متن‌های من | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="margin-top: 32px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700;">متن‌های من</h1>
+      <p class="text-muted" style="font-size: 13px; margin-top: 4px;">متن‌های شبانه ذخیره‌شده و کلمات استخراج‌شده برای مرور</p>
+    </div>
+    <a href="/texts/new/" class="btn btn-primary" style="padding: 8px 20px; font-size: 13.5px;">
+      + ثبت متن جدید
+    </a>
+  </div>
+
+  {% if texts %}
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      {% for t in texts %}
+        <div class="card" style="margin-top: 0; padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px;">
+            <span class="brand-badge">{{ t.cards.count }} کلمه</span>
+            <h2 style="font-size: 18px; font-weight: 600; direction: ltr; text-align: left;">
+              <a href="/texts/{{ t.id }}/" style="color: var(--text); text-decoration: none;">
+                {{ t.title }}
+              </a>
+            </h2>
+          </div>
+
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 16px; direction: ltr; text-align: left; font-family: 'Inter', sans-serif;">
+            {{ t.body|truncatechars:180 }}
+          </p>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; gap: 8px;">
+              <a href="/texts/{{ t.id }}/" class="btn" style="font-size: 13px; padding: 4px 12px;">مشاهده متن</a>
+              <a href="/texts/{{ t.id }}/select/" class="btn" style="font-size: 13px; padding: 4px 12px;">انتخاب کلمات</a>
+              <button type="button" class="btn" onclick="openDeleteModal({{ t.id }}, '{{ t.title|escapejs }}', {{ t.cards.count }})" style="font-size: 13px; padding: 4px 12px; color: #ff6b6b; border-color: rgba(255,107,107,0.3);">
+                حذف متن
+              </button>
+            </div>
+            <span class="text-muted" style="font-size: 12px; direction: ltr;">{{ t.created_at|date:"Y/m/d H:i" }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card empty-state">
+      <div style="font-size: 40px; margin-bottom: 16px;">📖</div>
+      <h3 style="font-size: 17px; font-weight: 600; margin-bottom: 8px;">هنوز متنی ثبت نکرده‌اید</h3>
+      <p style="font-size: 14px; max-width: 400px; margin: 0 auto 20px;">
+        یک متن انگلیسی (از مقاله، کتاب یا اخبار) وارد کنید تا واژگان و اصطلاحات جدید آن را استخراج و در سیستم تکرار فاصله‌دار مرور کنید.
+      </p>
+      <a href="/texts/new/" class="btn btn-primary">ورود اولین متن</a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Delete Text Confirmation Modal -->
+<div id="delete-modal" class="modal-overlay" onclick="closeDeleteModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #ff6b6b;">
+      حذف متن
+    </h3>
+    <p style="font-size: 14px; margin-bottom: 16px; color: var(--text);">
+      آیا از حذف متن «<strong id="modal-text-title" style="color: var(--text);"></strong>» اطمینان دارید؟
+    </p>
+
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 20px;">
+      <span style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 10px;">
+        نحوه برخورد با لغات استخراج‌شده (<span id="modal-cards-count">۰</span> کلمه):
+      </span>
+      <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-bottom: 10px; cursor: pointer;">
+        <input type="radio" name="delete_cards_opt" value="false" checked style="margin-top: 3px;">
+        <span>
+          <strong>حذف فقط متن</strong>
+          <small class="text-muted" style="display: block; font-size: 11px; margin-top: 2px;">
+            لغات در سیستم یادگیری و جلسات مرور شبانه حفظ می‌شوند.
+          </small>
+        </span>
+      </label>
+      <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; cursor: pointer;">
+        <input type="radio" name="delete_cards_opt" value="true" style="margin-top: 3px;">
+        <span>
+          <strong style="color: #ff6b6b;">حذف متن به همراه لغات</strong>
+          <small class="text-muted" style="display: block; font-size: 11px; margin-top: 2px;">
+            تمام کلمات استخراج‌شده از این متن نیز از جعبه لغات حذف می‌شوند.
+          </small>
+        </span>
+      </label>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" class="btn" onclick="closeDeleteModal()" style="padding: 8px 16px; font-size: 13px;">
+        انصراف
+      </button>
+      <button type="button" id="btn-confirm-delete-text" class="btn" onclick="confirmDeleteText()" style="padding: 8px 20px; font-size: 13px; background: #dc2626; color: #fff; border-color: #dc2626;">
+        تایید و حذف
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let targetDeleteTextId = null;
+
+function openDeleteModal(textId, title, cardsCount) {
+  targetDeleteTextId = textId;
+  document.getElementById('modal-text-title').innerText = title;
+  document.getElementById('modal-cards-count').innerText = cardsCount;
+  document.getElementById('delete-modal').classList.add('active');
+}
+
+function closeDeleteModal(e) {
+  if (e && e.target !== document.getElementById('delete-modal') && e.type === 'click' && !e.target.matches('.modal-overlay')) return;
+  document.getElementById('delete-modal').classList.remove('active');
+  targetDeleteTextId = null;
+}
+
+async function confirmDeleteText() {
+  if (!targetDeleteTextId) return;
+  const deleteCards = document.querySelector('input[name="delete_cards_opt"]:checked').value === 'true';
+  const btn = document.getElementById('btn-confirm-delete-text');
+  btn.disabled = true;
+  btn.innerText = 'در حال حذف...';
+
+  try {
+    const res = await fetch(`/api/texts/${targetDeleteTextId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify({ delete_cards: deleteCards }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      window.location.reload();
+    } else {
+      alert(data.error || 'خطا در حذف متن.');
+      btn.disabled = false;
+      btn.innerText = 'تایید و حذف';
+    }
+  } catch (err) {
+    alert('خطای ارتباط با سرور.');
+    btn.disabled = false;
+    btn.innerText = 'تایید و حذف';
+  }
+}
+
+function getCsrfToken() {
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+</script>
+{% endblock %}

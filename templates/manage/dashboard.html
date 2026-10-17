@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}داشبورد مدیریت | LexiContext{% endblock %}
+
+
+{% block content %}
+<div style="max-width: 960px; margin: 24px auto 0;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 4px;">پنل مدیریت ارشد سامانه</h1>
+      <p class="text-muted" style="font-size: 13px;">نظارت بر سهمیه‌ها، کاربران، هزینه‌های هوش مصنوعی و ربات تلگرام</p>
+    </div>
+    <div class="brand-badge" style="color: #4ade80;">
+      وضعیت سیستم: آنلاین
+    </div>
+  </div>
+
+  <!-- Configuration Alerts -->
+  {% if not config.has_shared_ai_key or not config.get_tg_bot_token or not config.has_google_oauth %}
+  <div style="margin-bottom: 24px; display: flex; flex-direction: column; gap: 10px;">
+    {% if not config.has_shared_ai_key %}
+    <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 20px;">⚠️</span>
+        <div>
+          <strong style="color: #f59e0b; font-size: 14px;">کلید هوش مصنوعی (Google Gemini) تنظیم نشده است</strong>
+          <p class="text-muted" style="font-size: 12.5px; margin: 2px 0 0 0;">استخراج خودکار واژگان، معانی و مثال‌ها در متون تا زمان ثبت کلید غیرفعال خواهد بود.</p>
+        </div>
+      </div>
+      <a href="/manage/settings/#ai-settings" class="btn btn-primary" style="font-size: 13px; padding: 6px 14px;">
+        تنظیم کلید هوش مصنوعی ←
+      </a>
+    </div>
+    {% endif %}
+
+    {% if not config.get_tg_bot_token %}
+    <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: var(--radius-md); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 20px;">🤖</span>
+        <div>
+          <strong style="color: #60a5fa; font-size: 14px;">توکن ربات تلگرام هنوز تنظیم نشده است</strong>
+          <p class="text-muted" style="font-size: 12.5px; margin: 2px 0 0 0;">اتصال حساب‌های تلگرام و ارسال یادآورها تا زمان ثبت توکن ربات فعال نمی‌باشد.</p>
+        </div>
+      </div>
+      <a href="/manage/settings/#telegram-settings" class="btn" style="font-size: 13px; padding: 6px 14px; border-color: rgba(59, 130, 246, 0.5); color: #60a5fa;">
+        تنظیم ربات تلگرام ←
+      </a>
+    </div>
+    {% endif %}
+
+    {% if not config.has_google_oauth %}
+    <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 20px;">🔑</span>
+        <div>
+          <strong style="color: #f87171; font-size: 14px;">ورود با گوگل (Google OAuth) پیکربندی نشده است</strong>
+          <p class="text-muted" style="font-size: 12.5px; margin: 2px 0 0 0;">جهت فعال‌سازی ورود تک‌کلیکه با اکانت گوگل، شناسه Client ID و Secret را در تنظیمات وارد نمایید.</p>
+        </div>
+      </div>
+      <a href="/manage/settings/#google-settings" class="btn" style="font-size: 13px; padding: 6px 14px; border-color: rgba(239, 68, 68, 0.5); color: #f87171;">
+        تنظیم احراز هویت گوگل ←
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Global Metrics 4-Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کل کاربران</span>
+      <span style="font-size: 24px; font-weight: 700;">{{ total_users }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کاربران فعال (۷ روز گذشته)</span>
+      <span style="font-size: 24px; font-weight: 700; color: #4ade80;">{{ active_users_7d }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کل کارت‌های سیستم</span>
+      <span style="font-size: 24px; font-weight: 700;">{{ total_cards }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کاربران متصل به تلگرام</span>
+      <span style="font-size: 24px; font-weight: 700;">{{ tg_connected_users }}</span>
+    </div>
+  </div>
+
+  <!-- AI Global Quota vs Caps -->
+  <div class="card" style="margin-bottom: 24px; padding: 20px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      مصرف سهمیه اشتراکی سرور در برابر سقف‌های سراسری
+    </h2>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <!-- Daily Cap -->
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+          <span>سقف روزانه کل فراخوانی‌ها:</span>
+          <strong>{{ today_shared_calls }} از {% if daily_cap %}{{ daily_cap }}{% else %}نامحدود{% endif %}</strong>
+        </div>
+        <div class="progress-bar-container" style="height: 10px; background: var(--surface-2);">
+          <div class="progress-bar-fill" style="width: {{ daily_pct }}%; background: {% if daily_pct > 85 %}#ff6b6b{% else %}var(--text){% endif %};"></div>
+        </div>
+      </div>
+
+      <!-- Monthly Cap -->
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+          <span>سقف ماهانه کل فراخوانی‌ها:</span>
+          <strong>{{ month_shared_calls }} از {% if monthly_cap %}{{ monthly_cap }}{% else %}نامحدود{% endif %}</strong>
+        </div>
+        <div class="progress-bar-container" style="height: 10px; background: var(--surface-2);">
+          <div class="progress-bar-fill" style="width: {{ monthly_pct }}%; background: {% if monthly_pct > 85 %}#ff6b6b{% else %}var(--text){% endif %};"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top 10 Consumers This Month -->
+  <div class="card" style="margin-bottom: 24px; padding: 0; overflow-x: auto;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="font-size: 15px; font-weight: 700;">۱۰ کاربر پرمصرف سهمیه اشتراکی (ماه جاری)</h3>
+      <a href="/manage/users/" class="btn" style="font-size: 12px; padding: 4px 10px;">مشاهده تمام کاربران</a>
+    </div>
+
+    {% if top_users %}
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); background: var(--surface-2);">
+            <th style="padding: 10px 16px;">کاربر</th>
+            <th style="padding: 10px 16px;">فراخوانی‌های ماه</th>
+            <th style="padding: 10px 16px;">مجموع توکن‌ها</th>
+            <th style="padding: 10px 16px; text-align: left;">اقدام</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in top_users %}
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 10px 16px;">{{ u.user__email|default:u.user__username }}</td>
+              <td style="padding: 10px 16px; font-weight: 700;">{{ u.total_calls }}</td>
+              <td style="padding: 10px 16px;" class="text-muted">{{ u.total_tokens|default:0 }}</td>
+              <td style="padding: 10px 16px; text-align: left;">
+                <a href="/manage/users/{{ u.user_id }}/" class="btn" style="font-size: 11px; padding: 3px 8px;">تنظیمات کاربر</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="padding: 24px; text-align: center;" class="text-muted">در این ماه مصرفی ثبت نشده است.</div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Audit Logs -->
+  <div class="card" style="padding: 0; overflow-x: auto; margin-bottom: 32px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 15px; font-weight: 700;">آخرین رخدادهای مدیریتی (Audit Log)</h3>
+    </div>
+
+    {% if recent_logs %}
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); background: var(--surface-2);">
+            <th style="padding: 10px 16px;">زمان</th>
+            <th style="padding: 10px 16px;">مدیر</th>
+            <th style="padding: 10px 16px;">عملیات</th>
+            <th style="padding: 10px 16px;">کاربر هدف</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 10px 16px; font-size: 12px;" class="text-muted">{{ log.created_at|date:"Y/m/d H:i" }}</td>
+              <td style="padding: 10px 16px;">{{ log.admin.email|default:log.admin.username }}</td>
+              <td style="padding: 10px 16px; font-family: monospace;">{{ log.action }}</td>
+              <td style="padding: 10px 16px;">{{ log.target_user.email|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="padding: 24px; text-align: center;" class="text-muted">هنوز هیچ لاگ مدیریتی ثبت نشده است.</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}آمار یادگیری | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="max-width: 760px; margin: 24px auto 0;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 4px;">آمار یادگیری و استمرار</h1>
+      <p class="text-muted" style="font-size: 13px;">رنکینگ استمرار، سطوح پیشرفت حافظه و تحلیل مرورهای شبانه</p>
+    </div>
+    <div>
+      <span class="brand-badge" style="font-size: 13px; padding: 6px 14px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.35); color: #f87171; font-weight: 700;">
+        🔥 رکورد استمرار: <strong>{{ streak }}</strong> روز متوالی
+      </span>
+    </div>
+  </div>
+
+  <style>
+    .rank-tooltip-container:hover .rank-tooltip-content {
+      display: block !important;
+    }
+    .rank-tooltip-container:hover .rank-info-icon {
+      border-color: {{ user_rank.color }};
+      color: {{ user_rank.color }};
+      background: {{ user_rank.color }}22;
+    }
+  </style>
+
+  <!-- Exciting Ranked Tier Banner (Dota 2 Style) -->
+  <div class="card" style="margin-bottom: 24px; padding: 22px; background: linear-gradient(135deg, rgba(20, 20, 28, 0.95), rgba(15, 15, 20, 0.98)); border: 1px solid {{ user_rank.color }}44; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); position: relative; overflow: visible;">
+    <div style="position: absolute; top: -30px; left: -30px; width: 120px; height: 120px; background: radial-gradient(circle, {{ user_rank.color }}22 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: {{ user_rank.color }}18; border: 2px solid {{ user_rank.color }}; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 0 16px {{ user_rank.color }}33;">
+          {{ user_rank.icon }}
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="color: {{ user_rank.color }}; font-size: 16px; font-weight: 700; letter-spacing: 2px;">
+            {{ user_rank.stars_display }}
+          </span>
+          <h2 style="font-size: 22px; font-weight: 800; color: #fff; margin: 0; font-family: 'Inter', sans-serif;">
+            {{ user_rank.tier_name }}
+          </h2>
+        </div>
+      </div>
+
+      <div class="rank-tooltip-container" style="position: relative;">
+        <div class="rank-info-icon" style="width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease;">
+          !
+        </div>
+        <div class="rank-tooltip-content" style="position: absolute; top: calc(100% + 8px); left: 0; width: 310px; max-width: 85vw; background: #18181f; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.65; color: #e2e8f0; box-shadow: 0 12px 28px rgba(0,0,0,0.5); z-index: 50; display: none; text-align: right; direction: rtl; pointer-events: none;">
+          🛡️ <strong>سیستم رنکینگ استمرار و یادگیری:</strong> امتیاز رنک شما از ترکیب تعداد واژگان فعال، لغات مسلط‌شده، تعداد مرورها و زنجیره استمرار روزانه محاسبه می‌شود. در صورت وقفه، امتیاز استمرار کاهش می‌یابد اما زحمات لغات و مرورهای شما محفوظ می‌ماند و رنک یک‌دفعه صفر نخواهد شد.
+        </div>
+      </div>
+    </div>
+
+    <!-- Rank Progress Bar -->
+    <div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+        <span class="text-muted">پیشرفت تا رتبه بعدی ({% if user_rank.next_tier_name %}{{ user_rank.next_tier_name }}{% else %}حداکثر رتبه{% endif %}):</span>
+        <span style="color: {{ user_rank.color }}; font-weight: 600;">{{ user_rank.progress_pct }}% ({{ user_rank.pts_needed }} امتیاز باقی‌مانده)</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; border: 1px solid var(--border);">
+        <div style="width: {{ user_rank.progress_pct }}%; height: 100%; background: linear-gradient(90deg, {{ user_rank.color }}, #fff); border-radius: 4px; transition: width 0.4s ease;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics 4-Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px;">
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کل واژگان</span>
+      <span style="font-size: 24px; font-weight: 700;">{{ total_cards }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">واژگان مسلط (مرحله ۶+)</span>
+      <span style="font-size: 24px; font-weight: 700; color: #4ade80;">{{ learned_words_count }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کل مرورهای انجام‌شده</span>
+      <span style="font-size: 24px; font-weight: 700;">{{ total_reviews }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">زنجیره فعلی</span>
+      <span style="font-size: 24px; font-weight: 700;">{{ streak }} روز</span>
+    </div>
+  </div>
+
+  <!-- SRS Stage Breakdown -->
+  <div class="card" style="margin-bottom: 28px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      توزیع واژگان در مراحل ۸ گانه الگوریتم SRS
+    </h2>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 8px; margin-bottom: 20px;">
+      {% for stage_num, count in stage_counts.items %}
+        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 4px; text-align: center;">
+          <span class="text-muted" style="font-size: 11px; display: block;">مرحله {{ stage_num }}</span>
+          <span style="font-size: 18px; font-weight: 700; margin-top: 4px; display: block;">{{ count }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Phase summaries -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 13px;">
+      <div style="background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <span class="text-muted" style="display: block; font-size: 11px;">🌱 کارت‌های جدید (مرحله ۰)</span>
+        <strong>{{ new_cards_count }}</strong> واژه در صف شروع یادگیری
+      </div>
+      <div style="background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <span class="text-muted" style="display: block; font-size: 11px;">📖 یادگیری اولیه (مراحل ۱ تا ۳)</span>
+        <strong>{{ learning_cards_count }}</strong> واژه با فواصل ۱ تا ۴ روز
+      </div>
+      <div style="background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <span class="text-muted" style="display: block; font-size: 11px;">🔄 تثبیت حافظه (مراحل ۴ تا ۷)</span>
+        <strong>{{ reviewing_cards_count }}</strong> واژه با فواصل ۶ تا ۶۰ روز
+      </div>
+      <div style="background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <span class="text-muted" style="display: block; font-size: 11px;">⭐ تسلط کامل (مرحله ۸)</span>
+        <strong>{{ mastered_cards_count }}</strong> واژه با فواصل ۹۰ روزه
+      </div>
+    </div>
+  </div>
+
+  <!-- 30-Day Activity History -->
+  <div class="card" style="margin-bottom: 32px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      فعالیت ۳۰ روز اخیر
+    </h2>
+
+    <div style="display: flex; align-items: flex-end; gap: 4px; height: 140px; padding: 10px 0; border-bottom: 1px solid var(--border); overflow-x: auto;">
+      {% for item in activity_30d %}
+        <div style="flex: 1; min-width: 16px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;" title="{{ item.date|date:'Y/m/d' }}: {{ item.count }} مرور">
+          <div
+            style="width: 100%; border-radius: 2px 2px 0 0; background: {% if item.count > 0 %}var(--text){% else %}var(--surface-2){% endif %}; height: {% widthratio item.count max_day_reviews 100 %}%; min-height: {% if item.count > 0 %}4px{% else %}1px{% endif %};"
+          ></div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 8px;">
+      <span>۳۰ روز پیش</span>
+      <span>امروز</span>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

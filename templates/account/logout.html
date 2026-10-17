@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}خروج از حساب کاربری | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 60px auto 0;">
+  <div class="card" style="text-align: center; padding: 40px 24px;">
+    <div style="font-size: 40px; margin-bottom: 16px;">🚪</div>
+    <h1 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">
+      خروج از حساب کاربری
+    </h1>
+    <p class="text-muted" style="font-size: 14px; margin-bottom: 28px;">
+      آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟
+    </p>
+
+    <form method="post" action="{% url 'account_logout' %}">
+      {% csrf_token %}
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+      {% endif %}
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <a href="/dashboard/" class="btn" style="flex: 1; padding: 10px;">
+          انصراف و بازگشت
+        </a>
+        <button type="submit" class="btn btn-primary" style="flex: 1; padding: 10px; background: #e11d48; border-color: #e11d48; color: #fff;">
+          تایید و خروج
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

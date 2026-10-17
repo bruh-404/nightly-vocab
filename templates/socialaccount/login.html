@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}ورود با حساب گوگل | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 60px auto 0;">
+  <div class="card" style="text-align: center; padding: 40px 24px;">
+    <div style="font-size: 40px; margin-bottom: 16px;">🌐</div>
+    <h1 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">
+      ورود با حساب Google
+    </h1>
+    <p class="text-muted" style="font-size: 14px; margin-bottom: 28px;">
+      جهت ادامه احراز هویت و ورود امن به سامانه، روی دکمه زیر کلیک کنید.
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700; font-size: 15px;">
+        ادامه و انتقال به گوگل
+      </button>
+    </form>
+    <div style="margin-top: 16px;">
+      <a href="/" class="btn" style="width: 100%; padding: 8px; font-size: 13px;">
+        ← بازگشت به صفحه اصلی
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

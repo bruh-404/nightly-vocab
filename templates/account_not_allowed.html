@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}دسترسی غیرمجاز | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; max-width: 520px; margin: 60px auto; padding: 40px 24px;">
+  <div style="font-size: 32px; margin-bottom: 16px;">🔒</div>
+  <h1 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">ورود به سامانه محدود است</h1>
+  <p style="color: var(--muted); font-size: 14px; margin-bottom: 24px;">
+    ایمیل <strong>{{ user_email }}</strong> در لیست کاربران مجاز سرور ثبت نشده است. برای دسترسی لطفاً با مدیر سیستم تماس بگیرید.
+  </p>
+  <a href="/" class="btn btn-primary">بازگشت به صفحه اصلی</a>
+</div>
+{% endblock %}

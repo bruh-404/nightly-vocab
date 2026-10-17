@@ -1,0 +1,64 @@
+# ==============================================================================
+# Git Ignore Configuration for Nightly Vocab / LexiContext
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment & Sensitive Credentials
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Local SQLite & Databases
+*.sqlite3
+*.db
+db.sqlite3
+
+# Static files collection & Media uploads
+/staticfiles/
+/media/
+
+# Test, Linting, & Coverage Artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+env.bak/
+venv.bak/
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Temporary Files
+*.log
+logs/
+scratch/
+tmp/
+temp/

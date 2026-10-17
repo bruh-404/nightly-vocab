@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}کتابخانه واژگان | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 24px auto 0;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 4px;">کتابخانه واژگان</h1>
+      <p class="text-muted" style="font-size: 13px;">
+        مجموع کل کارت‌ها: <strong>{{ total_count }}</strong> واژه
+        {% if no_meaning_count %}
+          <span style="margin-right: 12px; color: #ff6b6b;">({{ no_meaning_count }} واژه بدون معنی)</span>
+        {% endif %}
+      </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button type="button" class="btn btn-primary" id="btn-open-add-modal" style="font-size: 13px; padding: 8px 16px;">
+        + افزودن واژه دستی
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card" style="padding: 16px; margin-bottom: 20px;">
+    <form method="GET" action="/library/" style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 220px;">
+        <input
+          type="text"
+          name="q"
+          value="{{ query }}"
+          placeholder="جستجو در واژگان، معانی و ریشه‌ها..."
+          class="form-input"
+          style="padding: 8px 14px; font-size: 14px;"
+        >
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <select name="phase" class="form-input" style="padding: 8px 12px; font-size: 13px; width: auto;">
+          <option value="">همه مراحل</option>
+          <option value="new" {% if phase_param == 'new' %}selected{% endif %}>کارت‌های جدید (مرحله ۰)</option>
+          <option value="learning" {% if phase_param == 'learning' %}selected{% endif %}>یادگیری اولیه (مراحل ۱–۳)</option>
+          <option value="reviewing" {% if phase_param == 'reviewing' %}selected{% endif %}>مرور و تثبیت (مراحل ۴–۷)</option>
+          <option value="mastered" {% if phase_param == 'mastered' %}selected{% endif %}>تسلط کامل (مرحله ۸)</option>
+        </select>
+
+        <select name="no_meaning" class="form-input" style="padding: 8px 12px; font-size: 13px; width: auto;">
+          <option value="">همه کارت‌ها</option>
+          <option value="1" {% if no_meaning == '1' %}selected{% endif %}>فقط بدون معنی ({{ no_meaning_count }})</option>
+        </select>
+
+        <select name="suspended" class="form-input" style="padding: 8px 12px; font-size: 13px; width: auto;">
+          <option value="">وضعیت فعالیت</option>
+          <option value="0" {% if suspended_param == '0' %}selected{% endif %}>فقط فعال</option>
+          <option value="1" {% if suspended_param == '1' %}selected{% endif %}>فقط معلق ({{ suspended_count }})</option>
+        </select>
+
+        <button type="submit" class="btn" style="padding: 8px 16px; font-size: 13px;">فیلتر</button>
+        {% if query or phase_param or no_meaning or suspended_param or stage_param %}
+          <a href="/library/" class="btn" style="padding: 8px 12px; font-size: 13px; color: var(--muted);">✕ پاک کردن</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Cards Table -->
+  {% if cards %}
+    <div class="card" style="padding: 0; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 14px;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); background: var(--surface-2);">
+            <th style="padding: 12px 16px;">واژه / عبارت</th>
+            <th style="padding: 12px 16px; white-space: nowrap;">نقش</th>
+            <th style="padding: 12px 16px;">معنی فارسی</th>
+            <th style="padding: 12px 16px; text-align: center; white-space: nowrap;">مرحله SRS</th>
+            <th style="padding: 12px 16px; white-space: nowrap;">موعد بعدی</th>
+            <th style="padding: 12px 16px; text-align: left; white-space: nowrap;">عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for card in cards %}
+            <tr id="card-row-{{ card.id }}" style="border-bottom: 1px solid var(--border); {% if card.is_suspended %}opacity: 0.6;{% endif %}">
+              <td style="padding: 12px 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button
+                    type="button"
+                    class="btn btn-icon"
+                    title="پخش تلفظ صوتی"
+                    onclick="playPronunciation('{{ card.word|escapejs }}', '{% if card.audio_url %}{{ card.audio_url|escapejs }}{% endif %}')"
+                    style="width: 28px; height: 28px; min-height: 28px; padding: 0; font-size: 13px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); color: #818cf8; flex-shrink: 0;"
+                  >
+                    🔊
+                  </button>
+                  <div style="font-weight: 700; font-size: 15px; direction: ltr; text-align: left;">
+                    {{ card.word }}
+                    {% if card.is_suspended %}
+                      <span class="brand-badge" style="font-size: 10px; margin-left: 4px; color: #ff6b6b;">معلق</span>
+                    {% endif %}
+                  </div>
+                </div>
+                {% if card.context_sentence %}
+                  <div class="text-muted" style="font-size: 12px; direction: ltr; text-align: left; margin-top: 4px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 36px;">
+                    {{ card.context_sentence }}
+                  </div>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px; white-space: nowrap;">
+                <span class="brand-badge" style="font-size: 11px; white-space: nowrap; direction: ltr; font-family: 'Inter', sans-serif;">{{ card.pos|capfirst|default:"—" }}</span>
+              </td>
+              <td style="padding: 12px 16px;">
+                {% if card.meaning %}
+                  <span id="card-meaning-{{ card.id }}">{{ card.meaning }}</span>
+                {% else %}
+                  <button
+                    type="button"
+                    class="btn"
+                    style="font-size: 12px; padding: 2px 8px; color: var(--muted); border-style: dashed;"
+                    onclick="openEditModal({{ card.id }}, '{{ card.word|escapejs }}', '{{ card.lemma|escapejs }}', '{{ card.pos|escapejs }}', '', '{{ card.context_sentence|escapejs }}')"
+                  >
+                    + افزودن معنی
+                  </button>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px; text-align: center; white-space: nowrap;">
+                <span class="brand-badge" style="font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 10px;">
+                  <span>مرحله</span>
+                  <span>{{ card.stage }}</span>
+                </span>
+              </td>
+              <td style="padding: 12px 16px; font-size: 13px; white-space: nowrap;" class="text-muted">
+                {% if card.stage == 0 %}
+                  <span style="white-space: nowrap;">در صف شروع</span>
+                {% elif card.next_review_date %}
+                  <span style="white-space: nowrap; direction: ltr; display: inline-block;">{{ card.next_review_date|date:"Y/m/d" }}</span>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px; text-align: left; white-space: nowrap;">
+                <div style="display: inline-flex; gap: 6px;">
+                  <button
+                    type="button"
+                    class="btn btn-icon"
+                    title="ویرایش واژه"
+                    style="width: 32px; height: 32px; font-size: 14px;"
+                    onclick="openEditModal({{ card.id }}, '{{ card.word|escapejs }}', '{{ card.lemma|escapejs }}', '{{ card.pos|escapejs }}', '{{ card.meaning|escapejs }}', '{{ card.context_sentence|escapejs }}')"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-icon"
+                    title="{% if card.is_suspended %}رفع تعلیق کارت{% else %}تعلیق کارت{% endif %}"
+                    style="width: 32px; height: 32px; font-size: 14px;"
+                    onclick="toggleSuspendCard({{ card.id }})"
+                  >
+                    {% if card.is_suspended %}⏵️{% else %}⏸️{% endif %}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-icon"
+                    title="بازنشانی پیشرفت (بازگشت به مرحله ۰)"
+                    style="width: 32px; height: 32px; font-size: 14px;"
+                    onclick="resetCardProgress({{ card.id }})"
+                  >
+                    🔄
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-icon"
+                    title="حذف واژه"
+                    style="width: 32px; height: 32px; font-size: 14px; color: #ff6b6b;"
+                    onclick="deleteCard({{ card.id }})"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px;">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if phase_param %}&phase={{ phase_param }}{% endif %}{% if no_meaning %}&no_meaning={{ no_meaning }}{% endif %}{% if suspended_param %}&suspended={{ suspended_param }}{% endif %}" class="btn" style="padding: 6px 14px; font-size: 13px;">قبلی</a>
+        {% endif %}
+        <span class="text-muted" style="font-size: 13px;">
+          صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if phase_param %}&phase={{ phase_param }}{% endif %}{% if no_meaning %}&no_meaning={{ no_meaning }}{% endif %}{% if suspended_param %}&suspended={{ suspended_param }}{% endif %}" class="btn" style="padding: 6px 14px; font-size: 13px;">بعدی</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="card empty-state" style="padding: 48px 16px; text-align: center;">
+      <div style="font-size: 40px; margin-bottom: 12px;">📚</div>
+      <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">هیچ واژه‌ای یافت نشد</h3>
+      <p class="text-muted" style="font-size: 14px; margin-bottom: 20px;">
+        {% if query or phase_param or no_meaning or suspended_param %}
+          با فیلترهای انتخابی کارتی پیدا نشد.
+        {% else %}
+          هنوز واژه‌ای به کتابخانه اضافه نکرده‌اید.
+        {% endif %}
+      </p>
+      {% if query or phase_param or no_meaning or suspended_param %}
+        <a href="/library/" class="btn" style="padding: 8px 20px;">مشاهده همه واژگان</a>
+      {% else %}
+        <button type="button" class="btn btn-primary" onclick="openAddModal()" style="padding: 8px 24px;">+ افزودن اولین واژه</button>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal: Edit Card -->
+<div id="edit-modal" class="modal-backdrop" style="display: none;">
+  <div class="modal-content" style="max-width: 520px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 16px; font-weight: 700;">ویرایش واژه</h3>
+      <button type="button" class="btn" style="padding: 4px 10px; font-size: 13px;" onclick="closeEditModal()">✕</button>
+    </div>
+    <form id="edit-card-form" style="padding: 20px;">
+      <input type="hidden" id="edit-card-id">
+
+      <div style="margin-bottom: 14px;">
+        <label class="form-label">واژه یا عبارت</label>
+        <input type="text" id="edit-word" class="form-input" style="direction: ltr;" required>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label class="form-label">نقش دستوری</label>
+          <select id="edit-pos" class="form-input">
+            {% for p_val, p_lbl in pos_choices %}
+              <option value="{{ p_val }}">{{ p_lbl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="edit-lemma-container">
+          <label class="form-label">شکل ساده (Lemma)</label>
+          <input type="text" id="edit-lemma" class="form-input" style="direction: ltr;">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label class="form-label">معنی فارسی در این بستر</label>
+        <input type="text" id="edit-meaning" class="form-input" style="direction: rtl;" placeholder="معنی فارسی را وارد کنید...">
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label class="form-label">جمله بستر (Context Sentence)</label>
+        <textarea id="edit-context-sentence" class="form-input" rows="3" style="direction: ltr; font-size: 13px;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn" onclick="closeEditModal()">انصراف</button>
+        <button type="submit" class="btn btn-primary" id="btn-save-edit">ذخیره تغییرات</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Manual Add Card -->
+<div id="add-modal" class="modal-backdrop" style="display: none;">
+  <div class="modal-content" style="max-width: 520px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 16px; font-weight: 700;">افزودن واژه دستی به کتابخانه</h3>
+      <button type="button" class="btn" style="padding: 4px 10px; font-size: 13px;" onclick="closeAddModal()">✕</button>
+    </div>
+    <form id="add-card-form" style="padding: 20px;">
+      <div style="margin-bottom: 14px;">
+        <label class="form-label">واژه یا عبارت انگلیسی (حداکثر ۵ کلمه)</label>
+        <input type="text" id="add-word" class="form-input" style="direction: ltr;" placeholder="مثال: resilience یا safe and sound" required>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label class="form-label">نقش دستوری</label>
+          <select id="add-pos" class="form-input">
+            {% for p_val, p_lbl in pos_choices %}
+              <option value="{{ p_val }}">{{ p_lbl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="add-lemma-container">
+          <label class="form-label">شکل ساده (اختیاری)</label>
+          <input type="text" id="add-lemma" class="form-input" style="direction: ltr;" placeholder="شکل پایه واژه">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label class="form-label">معنی فارسی</label>
+        <input type="text" id="add-meaning" class="form-input" style="direction: rtl;" placeholder="معنی دقیق به فارسی">
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label class="form-label">جمله نمونه / بستر (اختیاری)</label>
+        <textarea id="add-context-sentence" class="form-input" rows="2" style="direction: ltr; font-size: 13px;" placeholder="جمله‌ای شامل واژه برای یادآوری بهتر"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn" onclick="closeAddModal()">انصراف</button>
+        <button type="submit" class="btn btn-primary" id="btn-save-add">+ ایجاد کارت</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  // Modals management
+  const editModal = document.getElementById("edit-modal");
+  const addModal = document.getElementById("add-modal");
+  const editPos = document.getElementById("edit-pos");
+  const editLemmaContainer = document.getElementById("edit-lemma-container");
+  const addPos = document.getElementById("add-pos");
+  const addLemmaContainer = document.getElementById("add-lemma-container");
+
+  function isNounOrVerb(p) {
+    const val = (p || "").toLowerCase();
+    return val === "noun" || val === "verb";
+  }
+
+  if (editPos && editLemmaContainer) {
+    editPos.addEventListener("change", () => {
+      editLemmaContainer.style.display = isNounOrVerb(editPos.value) ? "block" : "none";
+    });
+  }
+
+  if (addPos && addLemmaContainer) {
+    addPos.addEventListener("change", () => {
+      addLemmaContainer.style.display = isNounOrVerb(addPos.value) ? "block" : "none";
+    });
+  }
+
+  function openEditModal(id, word, lemma, pos, meaning, sentence) {
+    document.getElementById("edit-card-id").value = id;
+    document.getElementById("edit-word").value = word || "";
+    document.getElementById("edit-lemma").value = lemma || "";
+    document.getElementById("edit-pos").value = pos || "noun";
+    document.getElementById("edit-meaning").value = meaning || "";
+    document.getElementById("edit-context-sentence").value = sentence || "";
+    if (editLemmaContainer) {
+      editLemmaContainer.style.display = isNounOrVerb(pos || "noun") ? "block" : "none";
+    }
+    editModal.style.display = "flex";
+  }
+
+  function closeEditModal() {
+    editModal.style.display = "none";
+  }
+
+  function openAddModal() {
+    document.getElementById("add-card-form").reset();
+    if (addLemmaContainer && addPos) {
+      addLemmaContainer.style.display = isNounOrVerb(addPos.value) ? "block" : "none";
+    }
+    addModal.style.display = "flex";
+  }
+
+  function closeAddModal() {
+    addModal.style.display = "none";
+  }
+
+  const btnOpenAddModal = document.getElementById("btn-open-add-modal");
+  if (btnOpenAddModal) btnOpenAddModal.addEventListener("click", openAddModal);
+
+  // Edit card form submit
+  document.getElementById("edit-card-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cardId = document.getElementById("edit-card-id").value;
+    const wordVal = document.getElementById("edit-word").value.trim();
+    const posVal = document.getElementById("edit-pos").value;
+    const isNV = isNounOrVerb(posVal);
+    const lemmaVal = isNV ? (document.getElementById("edit-lemma").value.trim() || wordVal.toLowerCase()) : wordVal.toLowerCase();
+    const payload = {
+      word: wordVal,
+      lemma: lemmaVal,
+      pos: posVal,
+      meaning: document.getElementById("edit-meaning").value.trim(),
+      context_sentence: document.getElementById("edit-context-sentence").value.trim(),
+    };
+
+    try {
+      const res = await fetch(`/api/cards/${cardId}/edit/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": CSRF_TOKEN,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "خطا در ذخیره تغییرات.");
+        return;
+      }
+      closeEditModal();
+      window.location.reload();
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  });
+
+  // Manual add card submit
+  document.getElementById("add-card-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const wordVal = document.getElementById("add-word").value.trim();
+    const posVal = document.getElementById("add-pos").value;
+    const isNV = isNounOrVerb(posVal);
+    const lemmaVal = isNV ? (document.getElementById("add-lemma").value.trim() || wordVal.toLowerCase()) : wordVal.toLowerCase();
+    const payload = {
+      word: wordVal,
+      lemma: lemmaVal,
+      pos: posVal,
+      meaning: document.getElementById("add-meaning").value.trim(),
+      context_sentence: document.getElementById("add-context-sentence").value.trim(),
+    };
+
+    try {
+      const res = await fetch("/api/cards/new/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": CSRF_TOKEN,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "خطا در ایجاد کارت.");
+        return;
+      }
+      closeAddModal();
+      window.location.reload();
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  });
+
+  // Toggle Suspend
+  async function toggleSuspendCard(cardId) {
+    try {
+      const res = await fetch(`/api/cards/${cardId}/suspend/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert(data.error || "خطا در تغییر وضعیت تعلیق.");
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  }
+
+  // Reset Progress
+  async function resetCardProgress(cardId) {
+    if (!confirm("آیا مطمئن هستید؟ پیشرفت این کارت به مرحله ۰ بازمی‌گردد و مجدداً در چرخه یادگیری قرار می‌گیرد.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/cards/${cardId}/reset/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert(data.error || "خطا در بازنشانی پیشرفت.");
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  }
+
+  // Delete Card
+  async function deleteCard(cardId) {
+    if (!confirm("آیا از حذف دائمی این واژه از کتابخانه اطمینان دارید؟")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/cards/${cardId}/delete/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const row = document.getElementById(`card-row-${cardId}`);
+        if (row) row.remove();
+      } else {
+        alert(data.error || "خطا در حذف کارت.");
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  }
+
+  // Audio pronunciation player
+  function playPronunciation(word, audioUrl) {
+    if (audioUrl && audioUrl.trim() !== '') {
+      const audio = new Audio(audioUrl);
+      audio.play().catch(() => speakWordFallback(word));
+    } else {
+      speakWordFallback(word);
+    }
+  }
+
+  function speakWordFallback(word) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert("مرورگر شما از پخش صوتی پشتیبانی نمی‌کند.");
+    }
+  }
+
+  // Close modals on backdrop click
+  window.addEventListener("click", (e) => {
+    if (e.target === editModal) closeEditModal();
+    if (e.target === addModal) closeAddModal();
+  });
+</script>
+{% endblock %}

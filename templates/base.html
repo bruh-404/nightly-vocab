@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{% block title %}Nightly Vocab | یادگیری واژگان در بستر متن{% endblock %}</title>
+
+  {% if site_config and site_config.google_site_verification %}
+  <meta name="google-site-verification" content="{{ site_config.google_site_verification }}">
+  {% endif %}
+
+  {% load static %}
+  <!-- Brand Favicon -->
+  <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}?v={% now 'U' %}">
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}?v={% now 'U' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}?v={% now 'U' %}">
+
+  <!-- Self-hosted font fallbacks & Google fonts link for crisp rendering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v={% now 'U' %}">
+  <script src="{% static 'js/theme.js' %}"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <img src="{% static 'img/logo.png' %}" alt="Nightly Vocab Logo" class="brand-logo" width="34" height="34" style="border-radius: 8px; object-fit: cover;">
+        <span>Nightly Vocab</span>
+        <span class="brand-badge">SRS</span>
+      </a>
+
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+          <nav class="nav-links">
+            <a href="/dashboard/" class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}">داشبورد</a>
+            <a href="/texts/" class="nav-link {% if request.path|slice:':7' == '/texts/' %}active{% endif %}">متن‌ها</a>
+            <a href="/library/" class="nav-link {% if request.path|slice:':9' == '/library/' %}active{% endif %}">کتابخانه</a>
+            <a href="/stats/" class="nav-link {% if request.path|slice:':7' == '/stats/' %}active{% endif %}">آمار</a>
+            <a href="/settings/" class="nav-link {% if request.path == '/settings/' %}active{% endif %}">تنظیمات</a>
+
+            {% if user.is_staff or user.is_superuser %}
+              <div class="nav-admin-group">
+                <span class="nav-admin-badge">مدیریت</span>
+                <a href="/manage/" class="nav-link {% if request.path == '/manage/' %}active{% endif %}" style="font-size: 12.5px; padding: 4px 8px;">داشبورد مدیریت</a>
+                <a href="/manage/users/" class="nav-link {% if request.path|slice:':13' == '/manage/users' %}active{% endif %}" style="font-size: 12.5px; padding: 4px 8px;">کاربران</a>
+                <a href="/manage/settings/" class="nav-link {% if request.path|slice:':16' == '/manage/settings' %}active{% endif %}" style="font-size: 12.5px; padding: 4px 8px;">تنظیمات سراسری</a>
+              </div>
+            {% endif %}
+          </nav>
+        {% endif %}
+
+        <button id="theme-toggle-btn" class="btn btn-icon" onclick="toggleTheme()" aria-label="تغییر تم" style="min-height: 36px; width: 36px; padding: 0; border-radius: var(--radius-md);">
+          ☀️
+        </button>
+
+        {% if user.is_authenticated %}
+        <button id="mobile-menu-btn" class="btn btn-icon" onclick="toggleMobileDrawer()" aria-label="منوی موبایل" style="border-radius: var(--radius-md);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if user.is_authenticated %}
+  <!-- Mobile Drawer Overlay and Panel -->
+  <div id="mobile-drawer-overlay" class="mobile-drawer-overlay" onclick="toggleMobileDrawer(false)"></div>
+  <aside id="mobile-drawer" class="mobile-drawer">
+    <div class="mobile-drawer-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="{% static 'img/logo.png' %}" alt="Logo" width="28" height="28" style="border-radius: 6px; object-fit: cover;">
+        <span style="font-weight:700; font-size:15px;">منوی ناوبری</span>
+      </div>
+      <button class="btn btn-icon" onclick="toggleMobileDrawer(false)" aria-label="بستن منو" style="min-height: 32px; width: 32px; padding: 0;">✕</button>
+    </div>
+    <div class="mobile-drawer-links">
+      <a href="/dashboard/" class="mobile-drawer-link {% if request.path == '/dashboard/' %}active{% endif %}">
+        <span>📊</span> داشبورد
+      </a>
+      <a href="/texts/" class="mobile-drawer-link {% if request.path|slice:':7' == '/texts/' %}active{% endif %}">
+        <span>📖</span> متن‌ها
+      </a>
+      <a href="/library/" class="mobile-drawer-link {% if request.path|slice:':9' == '/library/' %}active{% endif %}">
+        <span>📚</span> کتابخانه واژگان
+      </a>
+      <a href="/stats/" class="mobile-drawer-link {% if request.path|slice:':7' == '/stats/' %}active{% endif %}">
+        <span>🏆</span> رنک و آمار
+      </a>
+      <a href="/settings/" class="mobile-drawer-link {% if request.path == '/settings/' %}active{% endif %}">
+        <span>⚙️</span> تنظیمات حساب
+      </a>
+
+      {% if user.is_staff or user.is_superuser %}
+        <div style="margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid var(--border);">
+          <span style="font-size: 11px; font-weight: 700; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.5px;">پنل مدیریت</span>
+        </div>
+        <a href="/manage/" class="mobile-drawer-link {% if request.path == '/manage/' %}active{% endif %}">
+          <span>🛡️</span> داشبورد مدیریت
+        </a>
+        <a href="/manage/users/" class="mobile-drawer-link {% if request.path|slice:':13' == '/manage/users' %}active{% endif %}">
+          <span>👥</span> مدیریت کاربران
+        </a>
+        <a href="/manage/settings/" class="mobile-drawer-link {% if request.path|slice:':16' == '/manage/settings' %}active{% endif %}">
+          <span>🌐</span> تنظیمات سراسری
+        </a>
+      {% endif %}
+
+      <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border);">
+        <form method="post" action="/accounts/logout/">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center; color: #ef4444; border-color: rgba(239,68,68,0.3);">
+            خروج از حساب
+          </button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Bottom Nav Bar (Always visible on mobile screens) -->
+  <nav class="mobile-bottom-nav">
+    <div class="mobile-bottom-nav-inner">
+      <a href="/dashboard/" class="mobile-nav-item {% if request.path == '/dashboard/' %}active{% endif %}">
+        <span class="icon">📊</span>
+        <span>داشبورد</span>
+      </a>
+      <a href="/texts/" class="mobile-nav-item {% if request.path|slice:':7' == '/texts/' %}active{% endif %}">
+        <span class="icon">📖</span>
+        <span>متن‌ها</span>
+      </a>
+      <a href="/library/" class="mobile-nav-item {% if request.path|slice:':9' == '/library/' %}active{% endif %}">
+        <span class="icon">📚</span>
+        <span>کتابخانه</span>
+      </a>
+      <a href="/stats/" class="mobile-nav-item {% if request.path|slice:':7' == '/stats/' %}active{% endif %}">
+        <span class="icon">🏆</span>
+        <span>رنک</span>
+      </a>
+      <a href="/settings/" class="mobile-nav-item {% if request.path == '/settings/' %}active{% endif %}">
+        <span class="icon">⚙️</span>
+        <span>تنظیمات</span>
+      </a>
+    </div>
+  </nav>
+  {% endif %}
+
+  <main class="app-container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    function toggleMobileDrawer(forceState) {
+      const overlay = document.getElementById('mobile-drawer-overlay');
+      const drawer = document.getElementById('mobile-drawer');
+      if (!overlay || !drawer) return;
+      const isOpen = drawer.classList.contains('active');
+      const shouldOpen = (typeof forceState === 'boolean') ? forceState : !isOpen;
+      if (shouldOpen) {
+        overlay.classList.add('active');
+        drawer.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      } else {
+        overlay.classList.remove('active');
+        drawer.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+  </script>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

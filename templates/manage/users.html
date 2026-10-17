@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}مدیریت کاربران | LexiContext{% endblock %}
+
+{% block content %}
+<div style="margin: 24px auto 0; width: 100%;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 4px;">مدیریت کاربران</h1>
+      <p class="text-muted" style="font-size: 13px;">مجموع کاربران: {{ total_users_count }} کاربر | ارتقا یا عزل دسترسی ادمین برای حساب‌های کاربری</p>
+    </div>
+    <div>
+      <a href="/manage/users/export/" class="btn" style="font-size: 13px; padding: 6px 14px;">
+        دریافت خروجی CSV (اکسل)
+      </a>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="card" style="padding: 16px; margin-bottom: 24px;">
+    <form method="get" action="/manage/users/" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+      <div style="flex: 1; min-width: 220px;">
+        <input type="text" name="q" value="{{ q }}" placeholder="جستجو بر اساس ایمیل یا نام کاربری..." class="input" style="width: 100%;">
+      </div>
+
+      <div>
+        <select name="status" class="input" style="min-width: 140px;">
+          <option value="" {% if not status_filter %}selected{% endif %}>همه وضعیت‌ها</option>
+          <option value="blocked" {% if status_filter == "blocked" %}selected{% endif %}>کاربران مسدود</option>
+          <option value="ai_disabled" {% if status_filter == "ai_disabled" %}selected{% endif %}>هوش مصنوعی غیرفعال</option>
+          <option value="own_only" {% if status_filter == "own_only" %}selected{% endif %}>فقط کلید شخصی</option>
+        </select>
+      </div>
+
+      <div>
+        <select name="sort" class="input" style="min-width: 140px;">
+          <option value="joined_desc" {% if sort_by == "joined_desc" %}selected{% endif %}>جدیدترین عضویت</option>
+          <option value="joined_asc" {% if sort_by == "joined_asc" %}selected{% endif %}>قدیمی‌ترین عضویت</option>
+          <option value="last_active" {% if sort_by == "last_active" %}selected{% endif %}>آخرین فعالیت</option>
+        </select>
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          اعمال فیلتر
+        </button>
+        {% if q or status_filter or sort_by != "joined_desc" %}
+          <a href="/manage/users/" class="btn" style="font-size: 13px; padding: 6px 12px; margin-right: 6px;">حذف فیلترها</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Users Table (Responsive without artificial horizontal scrollbar on desktop) -->
+  <div class="card" style="padding: 0; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border);">
+    {% if user_rows %}
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border); background: var(--surface-2);">
+            <th style="padding: 12px 14px; white-space: nowrap;">کاربر / حساب</th>
+            <th style="padding: 12px 10px; white-space: nowrap;">عضویت</th>
+            <th style="padding: 12px 10px; white-space: nowrap;">آخرین فعالیت</th>
+            <th style="padding: 12px 10px; text-align: center; white-space: nowrap;">کارت‌ها</th>
+            <th style="padding: 12px 10px; text-align: center; white-space: nowrap;">مصرف (امروز/ماه)</th>
+            <th style="padding: 12px 10px; text-align: center; white-space: nowrap;">دسترسی AI</th>
+            <th style="padding: 12px 10px; text-align: center; white-space: nowrap;">تلگرام</th>
+            <th style="padding: 12px 10px; text-align: center; white-space: nowrap;">نقش سیستم</th>
+            <th style="padding: 12px 14px; text-align: left; white-space: nowrap;">اقدام</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in user_rows %}
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 14px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="font-weight: 600;">{{ r.user.email|default:r.user.username }}</span>
+                </div>
+                {% if r.user.email and r.user.username != r.user.email %}
+                  <div class="text-muted" style="font-size: 11px;">@{{ r.user.username }}</div>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 10px; font-size: 12px; white-space: nowrap;" class="text-muted">
+                {{ r.user.date_joined|date:"Y/m/d" }}
+              </td>
+              <td style="padding: 12px 10px; font-size: 12px; white-space: nowrap;" class="text-muted">
+                {% if r.profile and r.profile.last_active_date %}
+                  {{ r.profile.last_active_date|date:"Y/m/d" }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td style="padding: 12px 10px; text-align: center; font-weight: 600; white-space: nowrap;">
+                {{ r.cards_count }}
+              </td>
+              <td style="padding: 12px 10px; text-align: center; font-size: 12px; white-space: nowrap;">
+                <strong>{{ r.today_shared }}</strong> / <span class="text-muted">{{ r.month_shared }}</span>
+              </td>
+              <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
+                {% if r.ai_access == "disabled" %}
+                  <span class="brand-badge" style="color: #ff6b6b;">غیرفعال</span>
+                {% elif r.ai_access == "own_only" %}
+                  <span class="brand-badge" style="color: #facc15;">کلید شخصی</span>
+                {% elif r.ai_access == "shared" %}
+                  <span class="brand-badge" style="color: #4ade80;">سهمیه سرور</span>
+                {% else %}
+                  <span class="brand-badge text-muted">سراسری</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
+                {% if r.telegram_connected %}
+                  <span style="color: #4ade80; font-size: 12px;">✓ متصل</span>
+                {% else %}
+                  <span class="text-muted" style="font-size: 12px;">—</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
+                {% if r.user.is_superuser %}
+                  <span class="brand-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); font-size: 11px;">سوپرادمین</span>
+                {% elif r.user.is_staff %}
+                  <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4); font-size: 11px;">ادمین</span>
+                {% else %}
+                  <span class="text-muted" style="font-size: 12px;">کاربر عادی</span>
+                {% endif %}
+                {% if r.is_blocked %}
+                  <span class="brand-badge" style="background: rgba(255, 107, 107, 0.2); color: #ff6b6b; margin-right: 4px;">مسدود</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 14px; text-align: left; white-space: nowrap;">
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                  <a href="/manage/users/{{ r.user.id }}/" class="btn" style="font-size: 12px; padding: 4px 10px;">
+                    مدیریت
+                  </a>
+                  {% if request.user.is_superuser and r.user != request.user %}
+                    <button type="button" class="btn" onclick="toggleUserAdmin({{ r.user.id }})" style="font-size: 11.5px; padding: 4px 8px; {% if r.user.is_staff %}color: #facc15; border-color: rgba(250, 204, 21, 0.4);{% else %}color: #34d399; border-color: rgba(52, 211, 153, 0.4);{% endif %}" title="تغییر دسترسی ادمین">
+                      {% if r.user.is_staff %}عزل ادمین{% else %}ارتقا به ادمین{% endif %}
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="padding: 32px; text-align: center;" class="text-muted">
+        هیچ کاربری با معیارهای جستجو یافت نشد.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 8px; align-items: center; margin-bottom: 32px;">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ status_filter }}&sort={{ sort_by }}" class="btn" style="font-size: 13px; padding: 4px 12px;">
+          قبلی
+        </a>
+      {% endif %}
+
+      <span style="font-size: 13px;" class="text-muted">
+        صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ status_filter }}&sort={{ sort_by }}" class="btn" style="font-size: 13px; padding: 4px 12px;">
+          بعدی
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function toggleUserAdmin(userId) {
+  if (!confirm("آیا از تغییر نقش ادمین این کاربر اطمینان دارید؟")) return;
+
+  try {
+    const res = await fetch(`/api/manage/users/${userId}/action/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+      },
+      body: JSON.stringify({ action: "toggle_admin_role" }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      window.location.reload();
+    } else {
+      alert(data.error || "خطا در تغییر دسترسی کاربر.");
+    }
+  } catch (err) {
+    alert("خطای ارتباط با سرور.");
+  }
+}
+
+function getCsrfToken() {
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : "";
+}
+</script>
+{% endblock %}

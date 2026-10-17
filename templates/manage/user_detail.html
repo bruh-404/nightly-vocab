@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}مدیریت کاربر {{ target_user.email|default:target_user.username }} | LexiContext{% endblock %}
+
+
+{% block content %}
+<div style="max-width: 960px; margin: 24px auto 0;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+        <h1 style="font-size: 22px; font-weight: 700;">{{ target_user.email|default:target_user.username }}</h1>
+        {% if control.is_blocked %}
+          <span class="brand-badge" style="background: rgba(255, 107, 107, 0.2); color: #ff6b6b;">حساب مسدود است</span>
+        {% else %}
+          <span class="brand-badge" style="color: #4ade80;">حساب فعال</span>
+        {% endif %}
+      </div>
+      <p class="text-muted" style="font-size: 13px;">
+        شناسه: {{ target_user.id }} | نام کاربری: {{ target_user.username }} | تاریخ عضویت: {{ target_user.date_joined|date:"Y/m/d" }}
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      {% if profile.telegram_chat_id %}
+        <span class="brand-badge" style="color: #4ade80;">تلگرام متصل (@{{ profile.telegram_username|default:profile.telegram_chat_id }})</span>
+      {% else %}
+        <span class="brand-badge text-muted">تلگرام غیرمتصل</span>
+      {% endif %}
+
+      {% if user_key and user_key.enabled %}
+        <span class="brand-badge" style="color: #4ade80;">کلید شخصی BYOK فعال</span>
+      {% else %}
+        <span class="brand-badge text-muted">فاقد کلید شخصی</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if success_msg %}
+    <div style="background: rgba(74, 222, 128, 0.1); border: 1px solid #4ade80; color: #4ade80; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 14px;">
+      {{ success_msg }}
+    </div>
+  {% endif %}
+
+  {% if error_msg %}
+    <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 14px;">
+      {{ error_msg }}
+    </div>
+  {% endif %}
+
+  <!-- Effective Policy Banner -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
+    <div class="card" style="padding: 16px;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">دسترسی مؤثر هوش مصنوعی</span>
+      <span style="font-size: 15px; font-weight: 700;">
+        {% if effective_access == "shared" %}
+          سهمیه اشتراکی سرور
+        {% elif effective_access == "own_only" %}
+          فقط کلید شخصی (BYOK)
+        {% elif effective_access == "disabled" %}
+          غیرفعال
+        {% else %}
+          {{ effective_access }}
+        {% endif %}
+      </span>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">سهمیه روزانه مؤثر</span>
+      <span style="font-size: 15px; font-weight: 700;">{{ effective_daily }} فراخوانی</span>
+    </div>
+    <div class="card" style="padding: 16px;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">سهمیه ماهانه مؤثر</span>
+      <span style="font-size: 15px; font-weight: 700;">{{ effective_monthly }} فراخوانی</span>
+    </div>
+  </div>
+
+  <!-- Quick Actions Card -->
+  <div class="card" style="padding: 20px; margin-bottom: 24px;">
+    <h2 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+      اقدامات سریع
+    </h2>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button type="button" class="btn btn-quick-action" data-action="disable_ai" style="font-size: 12px; padding: 6px 12px;">
+        قطع دسترسی هوش مصنوعی
+      </button>
+      <button type="button" class="btn btn-quick-action" data-action="require_own_key" style="font-size: 12px; padding: 6px 12px;">
+        اجبار به کلید شخصی
+      </button>
+      <button type="button" class="btn btn-quick-action" data-action="block_telegram" style="font-size: 12px; padding: 6px 12px;">
+        مسدودسازی تلگرام
+      </button>
+      <button type="button" class="btn btn-quick-action" data-action="reset_today_usage" style="font-size: 12px; padding: 6px 12px;">
+        صفر کردن مصرف امروز
+      </button>
+      <button type="button" class="btn btn-quick-action" data-action="toggle_block_user" style="font-size: 12px; padding: 6px 12px; border-color: #ff6b6b; color: #ff6b6b;">
+        {% if control.is_blocked %}رفع مسدودی کاربر{% else %}مسدود کردن کاربر{% endif %}
+      </button>
+      {% if request.user.is_superuser and target_user != request.user %}
+        <button type="button" class="btn btn-quick-action" data-action="toggle_admin_role" style="font-size: 12px; padding: 6px 12px; border-color: {% if target_user.is_staff %}#facc15; color: #facc15;{% else %}#10b981; color: #10b981;{% endif %}">
+          {% if target_user.is_staff %}عزل از نقش ادمین{% else %}⭐ ارتقا به ادمین{% endif %}
+        </button>
+      {% endif %}
+    </div>
+    <div id="quick-action-result" style="font-size: 12px; margin-top: 8px; display: none;"></div>
+  </div>
+
+  <!-- Overrides Form Card -->
+  <div class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      تنظیمات و سقف‌های اختصاصی کاربر
+    </h2>
+
+    <form method="post" action="/manage/users/{{ target_user.id }}/">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_overrides">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+            دسترسی به هوش مصنوعی
+          </label>
+          <select name="ai_access" class="input" style="width: 100%;">
+            <option value="inherit" {% if control.ai_access == "inherit" %}selected{% endif %}>پیروی از پیش‌فرض سامانه ({{ config.default_ai_access }})</option>
+            <option value="shared" {% if control.ai_access == "shared" %}selected{% endif %}>مجاز به مصرف سهمیه اشتراکی سرور</option>
+            <option value="own_only" {% if control.ai_access == "own_only" %}selected{% endif %}>فقط کلید اختصاصی کاربر (BYOK)</option>
+            <option value="disabled" {% if control.ai_access == "disabled" %}selected{% endif %}>قطع کامل دسترسی</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+            دسترسی به ربات تلگرام
+          </label>
+          <select name="telegram_access" class="input" style="width: 100%;">
+            <option value="inherit" {% if control.telegram_access == "inherit" %}selected{% endif %}>پیروی از پیش‌فرض سامانه</option>
+            <option value="allowed" {% if control.telegram_access == "allowed" %}selected{% endif %}>مجاز</option>
+            <option value="blocked" {% if control.telegram_access == "blocked" %}selected{% endif %}>مسدود شده</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+            سهمیه روزانه اختصاصی
+          </label>
+          <input type="number" name="ai_daily_limit" value="{{ control.ai_daily_limit|default_if_none:'' }}" placeholder="پیش‌فرض: {{ config.default_ai_daily_limit }}" class="input" style="width: 100%;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+            سهمیه ماهانه اختصاصی
+          </label>
+          <input type="number" name="ai_monthly_limit" value="{{ control.ai_monthly_limit|default_if_none:'' }}" placeholder="پیش‌فرض: {{ config.default_ai_monthly_limit }}" class="input" style="width: 100%;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+            حداکثر واژه در هر درخواست
+          </label>
+          <input type="number" name="max_targets_per_call" value="{{ control.max_targets_per_call|default_if_none:'' }}" placeholder="پیش‌فرض: {{ config.default_max_targets_per_call }}" class="input" style="width: 100%;">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" name="is_blocked" {% if control.is_blocked %}checked{% endif %}>
+          <span>مسدودسازی حساب کاربر (عدم دسترسی به سامانه)</span>
+        </label>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+          یادداشت مدیر (محرمانه، فقط برای مدیران ارشد)
+        </label>
+        <textarea name="admin_note" rows="3" class="input" style="width: 100%; resize: vertical;" placeholder="توضیحات مربوط به دلیل مسدودی، تخفیف سهمیه و...">{{ control.admin_note }}</textarea>
+      </div>
+
+      <div style="text-align: left;">
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره تغییرات کاربر
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 30-Day Usage History Table -->
+  <div class="card" style="padding: 0; overflow-x: auto; margin-bottom: 32px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+      <h3 style="font-size: 15px; font-weight: 700;">تاریخچه مصرف ۳۰ روز گذشته</h3>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right; min-width: 600px;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border); background: var(--surface-2);">
+          <th style="padding: 10px 16px;">تاریخ</th>
+          <th style="padding: 10px 16px; text-align: center;">فراخوانی سرور (Shared)</th>
+          <th style="padding: 10px 16px; text-align: center;">فراخوانی شخصی (BYOK)</th>
+          <th style="padding: 10px 16px; text-align: center;">ناموفق</th>
+          <th style="padding: 10px 16px; text-align: center;">مجموع توکن‌ها</th>
+          <th style="padding: 10px 16px; text-align: center;">پیام تلگرام</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in usage_history %}
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px 16px; font-family: monospace;">{{ row.date|date:"Y/m/d" }}</td>
+            <td style="padding: 10px 16px; text-align: center; font-weight: {% if row.shared_calls > 0 %}700{% else %}400{% endif %};">
+              {{ row.shared_calls }}
+            </td>
+            <td style="padding: 10px 16px; text-align: center;" class="text-muted">
+              {{ row.own_calls }}
+            </td>
+            <td style="padding: 10px 16px; text-align: center; color: {% if row.failed_calls > 0 %}#ff6b6b{% else %}var(--muted){% endif %};">
+              {{ row.failed_calls }}
+            </td>
+            <td style="padding: 10px 16px; text-align: center;" class="text-muted">
+              {{ row.tokens }}
+            </td>
+            <td style="padding: 10px 16px; text-align: center;" class="text-muted">
+              {{ row.tg_messages }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  document.querySelectorAll('.btn-quick-action').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.getAttribute('data-action');
+      const resBox = document.getElementById('quick-action-result');
+      resBox.style.display = 'block';
+      resBox.style.color = 'var(--muted)';
+      resBox.innerText = 'در حال انجام عملیات...';
+
+      try {
+        const resp = await fetch('/api/manage/users/{{ target_user.id }}/quick-action/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+          },
+          body: JSON.stringify({ action: action })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          resBox.style.color = '#4ade80';
+          resBox.innerText = '✓ عملیات با موفقیت انجام شد. در حال بارگذاری مجدد...';
+          setTimeout(() => window.location.reload(), 600);
+        } else {
+          resBox.style.color = '#ff6b6b';
+          resBox.innerText = '✗ ' + (data.error || 'خطا در انجام عملیات');
+        }
+      } catch (e) {
+        resBox.style.color = '#ff6b6b';
+        resBox.innerText = '✗ خطا در ارسال درخواست: ' + e;
+      }
+    });
+  });
+</script>
+{% endblock %}

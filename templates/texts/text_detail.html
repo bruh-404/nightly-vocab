@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div style="margin-top: 32px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="/texts/{{ text.id }}/select/" class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;">
+          + استخراج کلمه
+        </a>
+        <a href="/texts/" class="btn" style="padding: 6px 14px; font-size: 13px;">
+          متن‌های من
+        </a>
+        <button type="button" class="btn" onclick="openDeleteModal({{ text.id }}, '{{ text.title|escapejs }}', {{ saved_cards|length }})" style="padding: 6px 14px; font-size: 13px; color: #ff6b6b; border-color: rgba(255,107,107,0.3);">
+          حذف متن
+        </button>
+      </div>
+      <p class="text-muted" style="font-size: 13px; margin: 4px 0 0 0;">ثبت‌شده در {{ text.created_at|date:"Y/m/d H:i" }}</p>
+    </div>
+    <div style="text-align: left;">
+      <h1 style="font-size: 22px; font-weight: 700; direction: ltr; margin: 0;">{{ text.title }}</h1>
+    </div>
+  </div>
+
+  <div class="reading-surface" dir="ltr" lang="en" style="margin-right: auto !important; margin-left: 0 !important;">{% for seg in segments %}{% if seg.type == "card" %}<mark class="saved-card" title="{{ seg.card.word }}: {{ seg.card.meaning }} ({{ seg.card.pos }}) — مرحله {{ seg.card.stage }}">{{ seg.content }}</mark>{% else %}{{ seg.content }}{% endif %}{% endfor %}</div>
+
+  <div class="card" style="margin-top: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px;">
+      کارت‌های استخراج‌شده از این متن ({{ saved_cards|length }})
+    </h2>
+
+    {% if saved_cards %}
+      <div class="table-container" style="margin-top: 0;">
+        <table class="preview-table">
+          <thead>
+            <tr>
+              <th style="text-align: center; min-width: 170px;">واژه / عبارت</th>
+              <th style="text-align: center; white-space: nowrap; width: 110px;">نقش دستوری</th>
+              <th style="text-align: center;">معنی</th>
+              <th style="text-align: center; white-space: nowrap;">مرحله SRS</th>
+              <th style="text-align: center; white-space: nowrap;">مرور بعدی</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in saved_cards %}
+              <tr>
+                <td style="text-align: center; font-family: 'Inter', sans-serif; font-weight: 600;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <button
+                      type="button"
+                      class="btn btn-icon"
+                      title="پخش تلفظ صوتی"
+                      onclick="playPronunciation('{{ c.word|escapejs }}', '{% if c.audio_url_us %}{{ c.audio_url_us|escapejs }}{% elif c.audio_url_uk %}{{ c.audio_url_uk|escapejs }}{% endif %}')"
+                      style="width: 28px; height: 28px; min-height: 28px; padding: 0; font-size: 13px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); color: #818cf8; flex-shrink: 0;"
+                    >
+                      🔊
+                    </button>
+                    <div>
+                      <span style="font-size: 15px;">{{ c.word }}</span>
+                      {% if c.lemma and c.lemma != c.word %}
+                        <span class="text-muted" style="font-size: 12px; font-weight: 400; margin-left: 4px;">({{ c.lemma }})</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td style="text-align: center; white-space: nowrap;">
+                  <span class="brand-badge" style="font-family: 'Inter', sans-serif; font-size: 11px;">{{ c.pos|capfirst|default:"—" }}</span>
+                </td>
+                <td style="text-align: center; font-weight: 500;">
+                  {{ c.meaning|default:"<span class='text-muted'>—</span>" }}
+                </td>
+                <td style="text-align: center; white-space: nowrap;">
+                  <span class="brand-badge" style="font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 10px;">
+                    <span>مرحله</span>
+                    <span>{{ c.stage }}</span>
+                  </span>
+                </td>
+                <td class="text-muted" style="font-size: 13px; text-align: center; white-space: nowrap;">
+                  {% if c.stage == 0 %}
+                    <span style="white-space: nowrap;">در صف شروع</span>
+                  {% elif c.next_review_date %}
+                    <span style="white-space: nowrap; direction: ltr; display: inline-block;">{{ c.next_review_date|date:"Y/m/d" }}</span>
+                  {% else %}
+                    <span style="white-space: nowrap;">در صف شروع</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted" style="font-size: 14px; text-align: center; padding: 16px 0;">
+        هنوز هیچ کلمه‌ای از این متن برای مرور ذخیره نشده است.
+      </p>
+      <div style="text-align: center; margin-top: 12px;">
+        <a href="/texts/{{ text.id }}/select/" class="btn btn-primary">شروع انتخاب کلمات</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Delete Text Confirmation Modal -->
+<div id="delete-modal" class="modal-overlay" onclick="closeDeleteModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #ff6b6b;">
+      حذف متن
+    </h3>
+    <p style="font-size: 14px; margin-bottom: 16px; color: var(--text);">
+      آیا از حذف متن «<strong id="modal-text-title" style="color: var(--text);"></strong>» اطمینان دارید؟
+    </p>
+
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 20px;">
+      <span style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 10px;">
+        نحوه برخورد با لغات استخراج‌شده (<span id="modal-cards-count">۰</span> کلمه):
+      </span>
+      <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-bottom: 10px; cursor: pointer;">
+        <input type="radio" name="delete_cards_opt" value="false" checked style="margin-top: 3px;">
+        <span>
+          <strong>حذف فقط متن</strong>
+          <small class="text-muted" style="display: block; font-size: 11px; margin-top: 2px;">
+            لغات در سیستم یادگیری و جلسات مرور شبانه حفظ می‌شوند.
+          </small>
+        </span>
+      </label>
+      <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; cursor: pointer;">
+        <input type="radio" name="delete_cards_opt" value="true" style="margin-top: 3px;">
+        <span>
+          <strong style="color: #ff6b6b;">حذف متن به همراه لغات</strong>
+          <small class="text-muted" style="display: block; font-size: 11px; margin-top: 2px;">
+            تمام کلمات استخراج‌شده از این متن نیز از جعبه لغات حذف می‌شوند.
+          </small>
+        </span>
+      </label>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" class="btn" onclick="closeDeleteModal()" style="padding: 8px 16px; font-size: 13px;">
+        انصراف
+      </button>
+      <button type="button" id="btn-confirm-delete-text" class="btn" onclick="confirmDeleteText()" style="padding: 8px 20px; font-size: 13px; background: #dc2626; color: #fff; border-color: #dc2626;">
+        تایید و حذف
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let targetDeleteTextId = null;
+
+function openDeleteModal(textId, title, cardsCount) {
+  targetDeleteTextId = textId;
+  document.getElementById('modal-text-title').innerText = title;
+  document.getElementById('modal-cards-count').innerText = cardsCount;
+  document.getElementById('delete-modal').classList.add('active');
+}
+
+function closeDeleteModal(e) {
+  if (e && e.target !== document.getElementById('delete-modal') && e.type === 'click' && !e.target.matches('.modal-overlay')) return;
+  document.getElementById('delete-modal').classList.remove('active');
+  targetDeleteTextId = null;
+}
+
+async function confirmDeleteText() {
+  if (!targetDeleteTextId) return;
+  const deleteCards = document.querySelector('input[name="delete_cards_opt"]:checked').value === 'true';
+  const btn = document.getElementById('btn-confirm-delete-text');
+  btn.disabled = true;
+  btn.innerText = 'در حال حذف...';
+
+  try {
+    const res = await fetch(`/api/texts/${targetDeleteTextId}/delete/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify({ delete_cards: deleteCards }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      window.location.href = data.redirect || '/texts/';
+    } else {
+      alert(data.error || 'خطا در حذف متن.');
+      btn.disabled = false;
+      btn.innerText = 'تایید و حذف';
+    }
+  } catch (err) {
+    alert('خطای ارتباط با سرور.');
+    btn.disabled = false;
+    btn.innerText = 'تایید و حذف';
+  }
+}
+
+function getCsrfToken() {
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+function playPronunciation(word, audioUrl) {
+  if (audioUrl && audioUrl.trim() !== '') {
+    const audio = new Audio(audioUrl);
+    audio.play().catch(() => speakWordFallback(word));
+  } else {
+    speakWordFallback(word);
+  }
+}
+
+function speakWordFallback(word) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  } else {
+    alert("مرورگر شما از پخش صوتی پشتیبانی نمی‌کند.");
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Nightly Vocab | صفحه اصلی{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; margin-top: 40px; padding: 48px 24px;">
+  <div style="margin-bottom: 20px;">
+    {% load static %}
+    <img src="{% static 'img/logo.svg' %}" alt="Nightly Vocab Logo" style="width: 68px; height: 68px; border-radius: 16px; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);">
+  </div>
+  <h1 style="font-size: 26px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em;">
+    یادگیری واژگان در بستر متن با تکرار فاصله‌دار
+  </h1>
+  <p style="color: var(--muted); font-size: 15px; max-width: 520px; margin: 0 auto 32px;">
+    متن انگلیسی شبانه را وارد کنید، کلمات و عبارت‌ها را علامت بزنید و با سیستم ۸ مرحله‌ای SRS حافظه بلندمدت بسازید.
+  </p>
+
+  {% if login_error %}
+    <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; padding: 12px 16px; border-radius: var(--radius-md); max-width: 440px; margin: 0 auto 20px; font-size: 13px; text-align: right;">
+      ⚠️ {{ login_error }}
+    </div>
+  {% endif %}
+
+  <!-- Primary: Google Login Button -->
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+    <a href="/accounts/google/login/" class="btn btn-primary" style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 36px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+      <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#fff" d="M21.35 11.1h-9.17v2.98h5.27c-.23 1.22-.92 2.25-1.95 2.94v2.44h3.16c1.85-1.7 2.91-4.21 2.91-7.26 0-.74-.07-1.45-.22-2.1z"/><path fill="#fff" d="M12.18 21c2.65 0 4.88-.88 6.51-2.38l-3.16-2.44c-.88.59-2 .94-3.35.94-2.57 0-4.75-1.74-5.53-4.07h-3.26v2.52C5.01 18.77 8.34 21 12.18 21z"/><path fill="#fff" d="M6.65 13.05c-.2-.59-.31-1.22-.31-1.87s.11-1.28.31-1.87V6.79H3.39C2.7 8.16 2.31 9.71 2.31 11.37s.39 3.21 1.08 4.58l3.26-2.9z"/><path fill="#fff" d="M12.18 5.76c1.44 0 2.73.5 3.75 1.48l2.81-2.81C17.05 2.87 14.82 2 12.18 2 8.34 2 5.01 4.23 3.39 7.42l3.26 2.52c.78-2.33 2.96-4.18 5.53-4.18z"/></svg>
+      ورود با حساب گوگل
+    </a>
+
+    <!-- Password Login Section Toggle -->
+    <details style="width: 100%; max-width: 380px; margin-top: 10px;" {% if login_error %}open{% endif %}>
+      <summary style="font-size: 13px; color: var(--muted); cursor: pointer; user-select: none;">
+        یا ورود با ایمیل و رمز عبور (برای کاربران دارای رمز)
+      </summary>
+      <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-top: 12px; text-align: right;">
+        <form method="post" action="{% url 'accounts:password_login' %}">
+          {% csrf_token %}
+          <div style="margin-bottom: 12px;">
+            <label class="form-label" style="font-size: 12px;">ایمیل یا نام کاربری</label>
+            <input type="text" name="email" value="{{ email_val|default:'' }}" required placeholder="name@example.com" class="form-input" style="direction: ltr;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label class="form-label" style="font-size: 12px;">رمز عبور</label>
+            <input type="password" name="password" required placeholder="••••••••" class="form-input" style="direction: ltr;">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 600;">
+            ورود با رمز عبور
+          </button>
+        </form>
+        <div style="margin-top: 12px; font-size: 11px; color: var(--muted); line-height: 1.6;">
+          🔒 <strong>ثبت‌نام اولیه فقط با گوگل:</strong> امکان ورود با رمز عبور تنها برای کاربرانی است که قبلاً با گوگل ثبت‌نام کرده و در بخش تنظیمات، برای حساب خود رمز عبور فعال کرده‌اند.
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="font-size: 18px; font-weight: 700;">۸ مرحله</div>
+      <div style="font-size: 12px; color: var(--muted);">الگوریتم SRS هوشمند</div>
+    </div>
+    <div>
+      <div style="font-size: 18px; font-weight: 700;">۳ نوع کارت</div>
+      <div style="font-size: 12px; color: var(--muted);">معنی، املا و دیکته</div>
+    </div>
+    <div>
+      <div style="font-size: 18px; font-weight: 700;">تم مونوکروم</div>
+      <div style="font-size: 12px; color: var(--muted);">بدون حواس‌پرتی</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

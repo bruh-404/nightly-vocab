@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}جلسه مرور شبانه | Nightly Vocab{% endblock %}
+
+
+{% block content %}
+<div style="max-width: 680px; margin: 24px auto 0;">
+
+  <!-- Recovery Banner (If absent > 7 days) -->
+  <div id="recovery-banner" class="alert alert-info" style="display: none; font-size: 13px; margin-bottom: 20px;">
+    🌙 <strong>خوش آمدید!</strong> پس از چند روز دوری، فواصل مرور کارت‌ها با جریمهٔ ملایم بازتنظیم شده‌اند تا بدون انباشتگی سنگین بتوانید مرور را از سر بگیرید.
+  </div>
+
+  <!-- Header & Progress Bar -->
+  <div class="review-header">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="text-muted" style="font-size: 13px;">پیشرفت امروز:</span>
+      <span id="progress-text" style="font-weight: 700; font-size: 14px;">۰ / ۰</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span id="card-stage-badge" class="brand-badge">مرحله ۰</span>
+    </div>
+  </div>
+
+  <div class="progress-bar-container">
+    <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+  </div>
+
+  <!-- Main Flashcard Container -->
+  <div id="card-container" class="review-card">
+
+    <!-- "!" Context Inspection Button -->
+    <button
+      id="btn-context"
+      type="button"
+      class="btn-context-inspect"
+      title="مشاهده در متن اصلی (کلید میانبر: I)"
+      aria-label="مشاهده در متن اصلی"
+      disabled
+    >
+      !
+    </button>
+
+    <!-- Top Card Area: Question / Front View -->
+    <div id="card-front-area" style="margin-top: 16px;">
+      <!-- Populated dynamically by review_session.js -->
+    </div>
+
+    <!-- Center Card Area: Input / Interaction -->
+    <div id="card-interaction-area">
+      <!-- Populated dynamically (Type 2 letter boxes, Type 3 input) -->
+    </div>
+
+    <!-- Bottom Card Area: Revealed Answer & Action Buttons -->
+    <div id="card-back-area" style="margin-top: 24px;">
+      <!-- Populated dynamically upon answer reveal -->
+    </div>
+
+  </div>
+
+  <!-- End of Session Celebratory Screen -->
+  <div id="session-end-screen" class="card empty-state" style="display: none; padding: 48px 24px;">
+    <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+    <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">مرور امشب تکمیل شد!</h2>
+    <p class="text-muted" style="font-size: 14px; margin-bottom: 24px;">
+      آفرین! کارت‌های واژگان امروز را با موفقیت مرور کردید.
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 440px; margin: 0 auto 32px; text-align: center;">
+      <div style="background: var(--surface-2); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-md);">
+        <span class="text-muted" style="font-size: 11px; display: block;">کل مرورها</span>
+        <span id="stat-total-reviewed" style="font-size: 18px; font-weight: 700;">۰</span>
+      </div>
+      <div style="background: var(--surface-2); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-md);">
+        <span class="text-muted" style="font-size: 11px; display: block;">بلد بودید</span>
+        <span id="stat-known" style="font-size: 18px; font-weight: 700; color: #4ade80;">۰</span>
+      </div>
+      <div style="background: var(--surface-2); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-md);">
+        <span class="text-muted" style="font-size: 11px; display: block;">موعد فردا</span>
+        <span id="stat-tomorrow-due" style="font-size: 18px; font-weight: 700;">۰</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+      <button type="button" onclick="startPracticeMode()" class="btn" style="padding: 10px 24px;">
+        🔄 مرور تمرینی (تست انواع کارت‌ها)
+      </button>
+      <a href="/dashboard/" class="btn btn-primary" style="padding: 10px 32px;">
+        بازگشت به داشبورد
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Full Text "!" Inspection Modal -->
+<div id="context-modal" class="modal-backdrop" style="display: none;">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border);">
+      <button id="btn-close-modal" type="button" aria-label="بستن" style="background: none; border: none; color: #ef4444; font-size: 20px; font-weight: 700; cursor: pointer; line-height: 1; padding: 6px 10px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">✕</button>
+      <h3 id="modal-text-title" style="font-size: 16px; font-weight: 700; direction: ltr; text-align: left; margin: 0; color: var(--text-primary);">بستر متن اصلی</h3>
+    </div>
+    <div id="modal-text-body" style="padding: 24px; overflow-y: auto; font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.85; text-align: left; direction: ltr; white-space: pre-wrap;">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  window.LEXICONTEXT_REVIEW_CONFIG = {
+    csrfToken: "{{ csrf_token }}"
+  };
+</script>
+<script src="{% static 'js/audio.js' %}?v={% now 'U' %}"></script>
+<script src="{% static 'js/review_session.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

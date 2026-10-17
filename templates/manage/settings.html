@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block title %}تنظیمات سراسری سامانه | LexiContext{% endblock %}
+
+
+{% block content %}
+<div style="max-width: 860px; margin: 24px auto 0;">
+
+  <!-- Header -->
+  <div style="margin-bottom: 24px;">
+    <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 4px;">تنظیمات سراسری و سقف‌ها</h1>
+    <p class="text-muted" style="font-size: 13px;">پیکربندی هوش مصنوعی، ربات تلگرام، سقف‌های مصرف و کنترل دسترسی کاربران</p>
+  </div>
+
+  {% if success_msg %}
+    <div style="background: rgba(74, 222, 128, 0.1); border: 1px solid #4ade80; color: #4ade80; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 14px;">
+      {{ success_msg }}
+    </div>
+  {% endif %}
+
+  {% if error_msg %}
+    <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; color: #ff6b6b; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 14px;">
+      {{ error_msg }}
+    </div>
+  {% endif %}
+
+  <!-- 1. AI Provider & Shared Key -->
+  <div id="ai-settings" class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      پیکربندی هوش مصنوعی و کلید اشتراکی سرور
+    </h2>
+
+    <form method="post" action="/manage/settings/">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="ai">
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" name="ai_master_switch" {% if config.ai_master_switch %}checked{% endif %}>
+          <span>فعال بودن سرویس سراسری هوش مصنوعی (Master Switch)</span>
+        </label>
+        <span class="text-muted" style="font-size: 12px; display: block; margin-top: 4px;">
+          در صورت غیرفعال بودن، فراخوانی‌های هوش مصنوعی با سهمیه سرور متوقف می‌شوند.
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">سرویس‌دهنده (Provider)</label>
+          <input type="text" name="ai_provider" value="{{ config.ai_provider }}" class="input" style="width: 100%; font-family: monospace;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">مدل (Model)</label>
+          <input type="text" name="ai_model" value="{{ config.ai_model }}" class="input" style="width: 100%; font-family: monospace;">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">کلید هوش مصنوعی سرور</label>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 13px;" class="text-muted">وضعیت کلید فعلی:</span>
+          {% if config.has_shared_ai_key %}
+            <span class="brand-badge" style="color: #4ade80;">کلید فعال است ({{ config.masked_shared_ai_key }})</span>
+          {% else %}
+            <span class="brand-badge" style="color: #ff6b6b;">تنظیم نشده</span>
+          {% endif %}
+        </div>
+        <input type="password" id="new_shared_ai_key" name="new_shared_ai_key" placeholder="برای جایگزینی، کلید جدید را وارد کنید..." class="input" style="width: 100%; font-family: monospace; direction: ltr;">
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <button type="button" id="btn-test-ai" class="btn" style="font-size: 13px; padding: 6px 14px;">
+          آزمایش اتصال به Gemini
+        </button>
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره تنظیمات هوش مصنوعی
+        </button>
+      </div>
+      <div id="ai-test-result" style="margin-top: 10px; font-size: 13px; display: none;"></div>
+    </form>
+  </div>
+
+  <!-- 2. Telegram Bot Configuration -->
+  <div id="telegram-settings" class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      پیکربندی ربات تلگرام
+    </h2>
+
+    <form method="post" action="/manage/settings/">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="telegram">
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" name="tg_enabled" {% if config.tg_enabled %}checked{% endif %}>
+          <span>فعال بودن ربات تلگرام</span>
+        </label>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">نام کاربری ربات (Bot Username)</label>
+        <input type="text" name="tg_bot_username" value="{{ config.tg_bot_username }}" placeholder="@LexiContextBot" class="input" style="width: 100%; font-family: monospace; direction: ltr;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">توکن ربات تلگرام (Bot Token)</label>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 13px;" class="text-muted">وضعیت توکن فعلی:</span>
+          {% if config.has_tg_bot_token %}
+            <span class="brand-badge" style="color: #4ade80;">تنظیم شده ({{ config.masked_tg_bot_token }})</span>
+          {% else %}
+            <span class="brand-badge" style="color: #ff6b6b;">تنظیم نشده</span>
+          {% endif %}
+        </div>
+        <input type="password" id="new_tg_bot_token" name="new_tg_bot_token" placeholder="برای تغییر توکن، مقدار جدید را وارد کنید..." class="input" style="width: 100%; font-family: monospace; direction: ltr;">
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; margin-top: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">بازه زمانی محدودیت پیام (Anti-Spam Rate Limit)</label>
+          <select name="tg_rate_limit_type" class="input" style="width: 100%;">
+            <option value="daily" {% if config.tg_rate_limit_type == "daily" %}selected{% endif %}>روزانه (سقف پیام در هر شبانه‌روز)</option>
+            <option value="hourly" {% if config.tg_rate_limit_type == "hourly" %}selected{% endif %}>ساعتی (سقف پیام در هر ساعت)</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">حداکثر پیام مجاز هر کاربر</label>
+          <input type="number" min="0" name="tg_user_rate_limit" value="{{ config.tg_user_rate_limit }}" class="input" style="width: 100%; direction: ltr;" placeholder="100">
+        </div>
+      </div>
+      <p class="text-muted" style="font-size: 12px; margin-top: -4px; margin-bottom: 16px;">
+        💡 برای جلوگیری از اسپم سرور: پس از رسیدن کاربر به این سقف، یک پیام هشدار حاوی زمان رفع محدودیت ارسال شده و پیام‌های بعدی تا پایان بازه به‌طور کامل نادیده گرفته می‌شوند (0 = نامحدود).
+      </p>
+
+      <div style="border-top: 1px dashed var(--border); padding-top: 16px; margin-top: 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; margin: 0;">
+            <input type="checkbox" name="tg_force_join_enabled" {% if config.tg_force_join_enabled %}checked{% endif %}>
+            <span>اجبار عضویت در کانال‌ها یا گروه‌ها برای استفاده از ربات (Force Join)</span>
+          </label>
+          <button type="button" id="btn-add-force-channel" class="btn" style="font-size: 12px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">
+            <span style="font-size: 16px; font-weight: 700; line-height: 1;">+</span>
+            <span>افزودن کانال یا گروه جدید</span>
+          </button>
+        </div>
+
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 12px;">
+          می‌توانید چند کانال یا گروه مختلف اضافه کنید. کاربر موظف خواهد بود در تمام موارد عضو شود تا دسترسی به ربات برای او باز شود. ربات باید در تمام این کانال‌ها/گروه‌ها ادمین باشد.
+        </p>
+
+        <div id="force-join-channels-list" style="display: flex; flex-direction: column; gap: 10px;">
+          {% for ch in config.get_force_join_channels %}
+            <div class="force-channel-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">نام نمایشی (مثال: کانال اخبار)</label>
+                <input type="text" name="force_channel_title[]" value="{{ ch.title }}" placeholder="کانال رسمی" class="input" style="width: 100%; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">آیدی کانال/گروه (@ یا عددی)</label>
+                <input type="text" name="force_channel_id[]" value="{{ ch.channel }}" placeholder="@MyChannel یا -100..." class="input" style="width: 100%; font-family: monospace; direction: ltr; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">لینک عضویت (اختیاری)</label>
+                <input type="text" name="force_channel_link[]" value="{{ ch.link }}" placeholder="https://t.me/MyChannel" class="input" style="width: 100%; font-family: monospace; direction: ltr; font-size: 13px;">
+              </div>
+              <div style="padding-top: 18px;">
+                <button type="button" class="btn-remove-channel" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;" title="حذف این کانال">✕</button>
+              </div>
+            </div>
+          {% empty %}
+            <div class="force-channel-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">نام نمایشی (مثال: کانال اخبار)</label>
+                <input type="text" name="force_channel_title[]" value="" placeholder="کانال رسمی" class="input" style="width: 100%; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">آیدی کانال/گروه (@ یا عددی)</label>
+                <input type="text" name="force_channel_id[]" value="" placeholder="@MyChannel یا -100..." class="input" style="width: 100%; font-family: monospace; direction: ltr; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">لینک عضویت (اختیاری)</label>
+                <input type="text" name="force_channel_link[]" value="" placeholder="https://t.me/MyChannel" class="input" style="width: 100%; font-family: monospace; direction: ltr; font-size: 13px;">
+              </div>
+              <div style="padding-top: 18px;">
+                <button type="button" class="btn-remove-channel" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;" title="حذف این کانال">✕</button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <button type="button" id="btn-test-tg" class="btn" style="font-size: 13px; padding: 6px 14px;">
+          آزمایش و ثبت وب‌هوک تلگرام
+        </button>
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره تنظیمات تلگرام
+        </button>
+      </div>
+      <div id="tg-test-result" style="margin-top: 10px; font-size: 13px; display: none;"></div>
+    </form>
+  </div>
+
+  <!-- 3. Defaults & Caps -->
+  <div class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      سقف‌های مصرف و سیاست‌های پیش‌فرض
+    </h2>
+
+    <form method="post" action="/manage/settings/">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="caps">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">دسترسی پیش‌فرض هوش مصنوعی کاربران جدید</label>
+          <select name="default_ai_access" class="input" style="width: 100%;">
+            <option value="inherit" {% if config.default_ai_access == "inherit" %}selected{% endif %}>وابسته به وضعیت سراسری (Inherit)</option>
+            <option value="shared" {% if config.default_ai_access == "shared" %}selected{% endif %}>استفاده از سهمیه اشتراکی سرور</option>
+            <option value="own_only" {% if config.default_ai_access == "own_only" %}selected{% endif %}>فقط کلید شخصی کاربر (BYOK)</option>
+            <option value="disabled" {% if config.default_ai_access == "disabled" %}selected{% endif %}>غیرفعال</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">دسترسی پیش‌فرض تلگرام</label>
+          <select name="default_telegram_access" class="input" style="width: 100%;">
+            <option value="allowed" {% if config.default_telegram_access == "allowed" %}selected{% endif %}>مجاز</option>
+            <option value="blocked" {% if config.default_telegram_access == "blocked" %}selected{% endif %}>مسدود</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">سهمیه روزانه پیش‌فرض کاربر</label>
+          <input type="number" name="default_ai_daily_limit" value="{{ config.default_ai_daily_limit }}" class="input" style="width: 100%;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">سهمیه ماهانه پیش‌فرض کاربر</label>
+          <input type="number" name="default_ai_monthly_limit" value="{{ config.default_ai_monthly_limit }}" class="input" style="width: 100%;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">حداکثر واژه در هر درخواست</label>
+          <input type="number" name="default_max_targets_per_call" value="{{ config.default_max_targets_per_call }}" class="input" style="width: 100%;">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">سقف روزانه کل سرور (0 = نامحدود)</label>
+          <input type="number" name="global_ai_daily_cap" value="{{ config.global_ai_daily_cap }}" class="input" style="width: 100%;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">سقف ماهانه کل سرور (0 = نامحدود)</label>
+          <input type="number" name="global_ai_monthly_cap" value="{{ config.global_ai_monthly_cap }}" class="input" style="width: 100%;">
+        </div>
+      </div>
+
+      <div style="text-align: left; margin-top: 20px;">
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره سقف‌ها و پیش‌فرض‌ها
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 4. Signups & Whitelist -->
+  <div class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      سیاست‌های عضویت و لیست مجاز
+    </h2>
+
+    <form method="post" action="/manage/settings/">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="access">
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" name="signups_open" {% if config.signups_open %}checked{% endif %}>
+          <span>عضویت برای عموم باز است (Signups Open)</span>
+        </label>
+        <span class="text-muted" style="font-size: 12px; display: block; margin-top: 4px;">
+          اگر غیرفعال باشد، فقط ایمیل‌های ثبت‌شده در لیست سفید زیر امکان ورود و عضویت را خواهند داشت.
+        </span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+          لیست ایمیل‌های مجاز (هر ایمیل در یک خط)
+        </label>
+        <textarea name="allowed_emails" rows="6" class="input" style="width: 100%; font-family: monospace; direction: ltr; resize: vertical;">{{ config.allowed_emails }}</textarea>
+      </div>
+
+      <div style="text-align: left; margin-top: 20px;">
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره تنظیمات دسترسی
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 5. System Backup & Restore -->
+  <div class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      پشتیبان‌گیری خودکار تلگرام و بازیابی اطلاعات سامانه
+    </h2>
+
+    <form method="post" action="/manage/settings/">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="backup">
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" name="backup_enabled" {% if config.backup_enabled %}checked{% endif %}>
+          <span>فعال بودن ارسال خودکار فایل پشتیبان به تلگرام ادمین (بدون ذخیره دائمی در سرور)</span>
+        </label>
+        <span class="text-muted" style="font-size: 12px; display: block; margin-top: 4px;">
+          فایل پشتیبان به‌صورت رمزگذاری و بدون ذخیره‌سازی روی دیسک، مستقیماً به پیوی ادمین در تلگرام فرستاده می‌شود.
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">بازه زمانی زمان‌بندی پشتیبان‌گیری</label>
+          <select name="backup_schedule" class="form-select">
+            <option value="hourly" {% if config.backup_schedule == "hourly" %}selected{% endif %}>ساعتی (هر ۱ ساعت)</option>
+            <option value="daily" {% if config.backup_schedule == "daily" %}selected{% endif %}>روزانه (هر ۲۴ ساعت)</option>
+            <option value="three_days" {% if config.backup_schedule == "three_days" %}selected{% endif %}>هر ۳ روز یک‌بار</option>
+            <option value="weekly" {% if config.backup_schedule == "weekly" %}selected{% endif %}>هفتگی (هر ۷ روز)</option>
+            <option value="monthly" {% if config.backup_schedule == "monthly" %}selected{% endif %}>ماهانه (هر ۳۰ روز)</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">شناسه چت تلگرام ادمین (Chat ID)</label>
+          <input type="number" name="backup_telegram_chat_id" value="{{ config.backup_telegram_chat_id|default:'' }}" placeholder="مثال: 123456789" class="form-input" style="direction: ltr;">
+          <span class="text-muted" style="font-size: 11px; display: block; margin-top: 4px;">در صورت خالی بودن، به حساب سوپرادمین متصل در سیستم ارسال می‌شود.</span>
+        </div>
+      </div>
+
+      {% if config.backup_last_sent_at %}
+        <div style="margin-bottom: 16px; font-size: 12px; color: var(--muted);">
+          آخرین ارسال موفق پشتیبان به تلگرام: <strong>{{ config.backup_last_sent_at|date:"Y/m/d H:i" }}</strong>
+        </div>
+      {% endif %}
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره زمان‌بندی پشتیبان‌گیری
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <a href="/manage/backup/download/" class="btn" style="font-size: 13px; padding: 6px 14px;">
+            📥 دانلود مستقیم فایل پشتیبان کامل (.json)
+          </a>
+          <button type="button" id="btn-send-backup-tg" class="btn" style="font-size: 13px; padding: 6px 14px; border-color: #38bdf8; color: #38bdf8;">
+            🚀 ارسال فوری به تلگرام ادمین
+          </button>
+        </div>
+      </div>
+      <div id="backup-tg-result" style="margin-bottom: 16px; font-size: 13px; display: none;"></div>
+    </form>
+
+    <!-- Restore Backup Form -->
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px;">
+      <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #facc15;">
+        🔄 بازیابی وضعیت سامانه از فایل پشتیبان
+      </h3>
+      <p class="text-muted" style="font-size: 12px; margin-bottom: 12px;">
+        فایل پشتیبان دریافت شده از ربات تلگرام یا دانلود شده قبلی را انتخاب کنید تا کلیه متون، واژگان و تنظیمات مجدداً برگردانده شوند.
+      </p>
+      <form method="post" action="/manage/backup/restore/" enctype="multipart/form-data" onsubmit="return confirm('آیا از بازیابی اطلاعات اطمینان دارید؟ داده‌های فعلی با اطلاعات فایل پشتیبان یکپارچه‌سازی می‌شوند.');">
+        {% csrf_token %}
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <input type="file" name="backup_file" accept=".json" required class="form-input" style="flex: 1; min-width: 240px; padding: 6px;">
+          <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 8px 20px; background: #eab308; border-color: #eab308; color: #000; font-weight: 700;">
+            شروع بازیابی اطلاعات
+          </button>
+        </div>
+      </form>
+  </div>
+
+  <!-- 6. Google OAuth & Search Console -->
+  <div id="google-settings" class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      ورود با گوگل (Google OAuth) و سرچ کنسول (Search Console)
+    </h2>
+
+    <form method="post" action="/manage/settings/">
+      {% csrf_token %}
+      <input type="hidden" name="section" value="google">
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" name="google_oauth_enabled" {% if config.google_oauth_enabled %}checked{% endif %}>
+          <span>فعال بودن دکمه «ورود سریع با گوگل» در صفحه لاگین</span>
+        </label>
+        <span class="text-muted" style="font-size: 12px; display: block; margin-top: 4px;">
+          در صورت فعال بودن و وجود کلیدها، دکمه ورود با حساب گوگل برای کاربران نمایش داده می‌شود.
+        </span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Google Client ID</label>
+        <input type="text" name="google_client_id" value="{{ config.get_google_client_id }}" placeholder="مثال: 123456789-abcdef.apps.googleusercontent.com" class="input" style="width: 100%; font-family: monospace; direction: ltr;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Google Client Secret</label>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 13px;" class="text-muted">وضعیت کلید فعلی:</span>
+          {% if config.has_google_oauth %}
+            <span class="brand-badge" style="color: #4ade80;">کلید فعال است ({{ config.masked_google_client_secret }})</span>
+          {% else %}
+            <span class="brand-badge" style="color: #ff6b6b;">تنظیم نشده</span>
+          {% endif %}
+        </div>
+        <input type="password" name="new_google_client_secret" placeholder="برای ثبت یا تغییر، Secret جدید را وارد کنید..." class="input" style="width: 100%; font-family: monospace; direction: ltr;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">کد تایید Google Search Console (اختیاری)</label>
+        <input type="text" name="google_site_verification" value="{{ config.google_site_verification }}" placeholder="مثال: google-site-verification-code-xyz" class="input" style="width: 100%; font-family: monospace; direction: ltr;">
+        <span class="text-muted" style="font-size: 12px; display: block; margin-top: 4px;">
+          جهت تایید مالکیت دامنه در Google Search Console بدون نیاز به تغییر رکورد DNS یا فایل HTML سرور.
+        </span>
+      </div>
+
+      <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 1.8;">
+        💡 <strong>راهنمای تنظیم در Google Cloud Console:</strong><br>
+        ۱. در بخش <em>Authorized JavaScript origins</em> دامنه خود را اضافه کنید (مثال: <code>https://yourdomain.com</code>).<br>
+        ۲. در بخش <em>Authorized redirect URIs</em> این آدرس را ثبت کنید: <code>https://yourdomain.com/accounts/google/login/callback/</code><br>
+        ۳. پس از ذخیره فرم، اطلاعات به شکل خودکار با سامانه احراز هویت یکپارچه خواهند شد.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
+        <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">
+          ذخیره تنظیمات گوگل
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // Test AI Key
+  document.getElementById('btn-test-ai')?.addEventListener('click', async () => {
+    const resBox = document.getElementById('ai-test-result');
+    resBox.style.display = 'block';
+    resBox.style.color = 'var(--muted)';
+    resBox.innerText = 'در حال بررسی اتصال به Gemini...';
+
+    const newKey = document.getElementById('new_shared_ai_key')?.value.trim() || '';
+
+    try {
+      const resp = await fetch('/api/manage/test-ai-key/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({ api_key: newKey })
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        resBox.style.color = '#4ade80';
+        resBox.innerText = '✓ ' + data.message;
+      } else {
+        resBox.style.color = '#ff6b6b';
+        resBox.innerText = '✗ ' + (data.error || 'خطا در برقراری اتصال');
+      }
+    } catch (e) {
+      resBox.style.color = '#ff6b6b';
+      resBox.innerText = '✗ خطا در ارسال درخواست: ' + e;
+    }
+  });
+
+  // Test Telegram Webhook
+  document.getElementById('btn-test-tg')?.addEventListener('click', async () => {
+    const resBox = document.getElementById('tg-test-result');
+    resBox.style.display = 'block';
+    resBox.style.color = 'var(--muted)';
+    resBox.innerText = 'در حال ارتباط با سرور تلگرام و ثبت وب‌هوک...';
+
+    try {
+      const resp = await fetch('/api/manage/test-telegram/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+        }
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        resBox.style.color = '#4ade80';
+        resBox.innerText = `✓ ربات @${data.bot_username} با موفقیت متصل شد. وب‌هوک: ${data.webhook_url}`;
+      } else {
+        resBox.style.color = '#ff6b6b';
+        resBox.innerText = '✗ ' + (data.error || 'خطا در تنظیم ربات');
+      }
+    } catch (e) {
+      resBox.style.color = '#ff6b6b';
+      resBox.innerText = '✗ خطا در ارسال درخواست: ' + e;
+    }
+  });
+
+  // Send Backup to Telegram
+  document.getElementById('btn-send-backup-tg')?.addEventListener('click', async () => {
+    const resBox = document.getElementById('backup-tg-result');
+    resBox.style.display = 'block';
+    resBox.style.color = 'var(--muted)';
+    resBox.innerText = 'در حال تهیه پشتیبان در حافظه و ارسال به پیوی تلگرام ادمین...';
+
+    try {
+      const resp = await fetch('/api/manage/backup/send-telegram/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+        }
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        resBox.style.color = '#4ade80';
+        resBox.innerText = '✓ ' + data.message;
+      } else {
+        resBox.style.color = '#ff6b6b';
+        resBox.innerText = '✗ ' + (data.error || 'خطا در ارسال پشتیبان به تلگرام');
+      }
+    } catch (e) {
+      resBox.style.color = '#ff6b6b';
+      resBox.innerText = '✗ خطا در برقراری ارتباط: ' + e;
+    }
+  });
+
+  // Dynamic Force Join Channels Management
+  const channelListContainer = document.getElementById('force-join-channels-list');
+  const btnAddChannel = document.getElementById('btn-add-force-channel');
+
+  btnAddChannel?.addEventListener('click', () => {
+    const row = document.createElement('div');
+    row.className = 'force-channel-row';
+    row.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border);';
+    row.innerHTML = `
+      <div>
+        <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">نام نمایشی (مثال: کانال اخبار)</label>
+        <input type="text" name="force_channel_title[]" value="" placeholder="کانال رسمی" class="input" style="width: 100%; font-size: 13px;">
+      </div>
+      <div>
+        <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">آیدی کانال/گروه (@ یا عددی)</label>
+        <input type="text" name="force_channel_id[]" value="" placeholder="@MyChannel یا -100..." class="input" style="width: 100%; font-family: monospace; direction: ltr; font-size: 13px;" required>
+      </div>
+      <div>
+        <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--muted);">لینک عضویت (اختیاری)</label>
+        <input type="text" name="force_channel_link[]" value="" placeholder="https://t.me/MyChannel" class="input" style="width: 100%; font-family: monospace; direction: ltr; font-size: 13px;">
+      </div>
+      <div style="padding-top: 18px;">
+        <button type="button" class="btn-remove-channel" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;" title="حذف این کانال">✕</button>
+      </div>
+    `;
+    channelListContainer.appendChild(row);
+    row.querySelector('input[name="force_channel_id[]"]')?.focus();
+  });
+
+  channelListContainer?.addEventListener('click', (e) => {
+    if (e.target.closest('.btn-remove-channel')) {
+      const rows = channelListContainer.querySelectorAll('.force-channel-row');
+      if (rows.length > 1) {
+        e.target.closest('.force-channel-row').remove();
+      } else {
+        const row = rows[0];
+        row.querySelectorAll('input').forEach(inp => inp.value = '');
+      }
+    }
+  });
+</script>
+{% endblock %}

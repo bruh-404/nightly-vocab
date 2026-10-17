@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}داشبورد | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="max-width: 720px; margin: 24px auto 0;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 4px;">داشبورد مطالعه</h1>
+      <p class="text-muted" style="font-size: 13px;">{{ user.email|default:user.username }}</p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <a href="/stats/" style="text-decoration: none;" title="مشاهده کارنامه رنکینگ و آمار">
+        <span class="brand-badge" style="border-color: {{ user_rank.color }}; color: {{ user_rank.color }}; font-weight: 700; font-size: 12px; padding: 4px 10px; cursor: pointer;">
+          {{ user_rank.icon }} {{ user_rank.tier_name }} {{ user_rank.stars_display }}
+        </span>
+      </a>
+      <span class="brand-badge" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4); font-size: 12px; padding: 4px 10px;">
+        🔥 {{ streak }} روز
+      </span>
+      <span class="brand-badge" style="font-size: 12px; padding: 4px 10px;">
+        سقف روزانه: {{ profile.daily_limit }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Backlog / Recovery Alert (if absent >= 7 days) -->
+  {% if is_recovery %}
+    <div class="alert alert-info" style="font-size: 13px; margin-bottom: 20px;">
+      🌙 <strong>خوش آمدید!</strong> پس از چند روز دوری، فواصل مرور کارت‌ها با جریمهٔ ملایم بازتنظیم شده‌اند تا بدون انباشتگی سنگین بتوانید مرور را از سر بگیرید.
+    </div>
+  {% endif %}
+
+  <!-- Today's Numbers Grid -->
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">موعد مرور امروز</span>
+      <span style="font-size: 24px; font-weight: 700; color: var(--text);">{{ due_cards_count }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">کارت‌های جدید</span>
+      <span style="font-size: 24px; font-weight: 700; color: var(--text);">{{ new_cards_count }}</span>
+    </div>
+    <div class="card" style="padding: 16px; text-align: center;">
+      <span class="text-muted" style="font-size: 12px; display: block; margin-bottom: 4px;">مرورهای امروز</span>
+      <span style="font-size: 24px; font-weight: 700; color: #4ade80;">{{ reviewed_today_count }}</span>
+    </div>
+  </div>
+
+  <!-- Big Call to Action Card -->
+  <div class="card" style="text-align: center; padding: 36px 20px; margin-bottom: 32px; border: 2px solid var(--border);">
+    {% if session_done and reviewed_today_count > 0 %}
+      <div style="font-size: 40px; margin-bottom: 12px;">🎉</div>
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">مرور امشب شما تکمیل شده است!</h2>
+      <p class="text-muted" style="font-size: 14px; margin-bottom: 20px;">
+        امروز {{ reviewed_today_count }} کارت را مرور کردید. فردا برای جلسه بعدی بازگردید.
+      </p>
+      <a href="/review/" class="btn" style="padding: 8px 24px; font-size: 13px;">
+        مرور دوباره کارت‌های امروز
+      </a>
+    {% elif due_cards_count == 0 and new_cards_count == 0 %}
+      <div style="font-size: 40px; margin-bottom: 12px;">🌱</div>
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">کارتی برای مرور وجود ندارد</h2>
+      <p class="text-muted" style="font-size: 14px; margin-bottom: 20px;">
+        متن جدیدی اضافه کنید و واژگان مد نظرتان را انتخاب کنید تا کارت‌های آموزشی ایجاد شوند.
+      </p>
+      <a href="/texts/new/" class="btn btn-primary" style="padding: 10px 28px;">
+        + افزودن متن جدید
+      </a>
+    {% else %}
+      <div style="font-size: 40px; margin-bottom: 12px;">🌙</div>
+      <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">جلسه مرور شبانه</h2>
+      <p class="text-muted" style="font-size: 14px; margin-bottom: 24px;">
+        {% if remaining_today > 0 %}
+          <strong>{{ remaining_today }}</strong> کارت آماده مرور در جلسه امشب دارید.
+        {% else %}
+          کارت‌های منتخب الگوریتم SRS بر اساس فواصل هوشمند آماده مرور هستند.
+        {% endif %}
+      </p>
+      <a href="/review/" class="btn btn-primary" style="padding: 14px 40px; font-size: 16px; font-weight: 700; border-radius: 30px;">
+        شروع مرور امشب ({{ remaining_today }} کارت)
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Recent Texts Section -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h3 style="font-size: 16px; font-weight: 700;">متن‌های اخیر</h3>
+    <div style="display: flex; gap: 8px;">
+      <a href="/texts/new/" class="btn" style="font-size: 13px; padding: 6px 12px;">+ متن جدید</a>
+      <a href="/texts/" class="btn" style="font-size: 13px; padding: 6px 12px;">همه متن‌ها</a>
+    </div>
+  </div>
+
+  {% if recent_texts %}
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 32px;">
+      {% for text in recent_texts %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border);">
+          <div>
+            <a href="/texts/{{ text.id }}/" style="font-weight: 600; text-decoration: none; color: var(--text); font-size: 14px;">
+              {{ text.title }}
+            </a>
+            <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+              {{ text.created_at|date:"Y/m/d" }} • {{ text.cards_count }} کارت
+            </div>
+          </div>
+          <div>
+            <a href="/texts/{{ text.id }}/select/" class="btn" style="font-size: 12px; padding: 4px 10px;">
+              انتخاب کلمات
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card empty-state" style="padding: 24px; text-align: center; margin-bottom: 32px;">
+      <p class="text-muted" style="font-size: 13px; margin-bottom: 12px;">هنوز متنی اضافه نکرده‌اید.</p>
+      <a href="/texts/new/" class="btn btn-primary" style="font-size: 13px; padding: 6px 16px;">+ افزودن اولین متن</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Timezone auto-sync
+  (function() {
+    const currentTz = "{{ profile.timezone }}";
+    const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (detectedTz && currentTz === "UTC") {
+      fetch("/api/accounts/timezone/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ timezone: detectedTz })
+      }).catch(console.error);
+    }
+  })();
+</script>
+{% endblock %}

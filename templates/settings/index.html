@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+
+{% block title %}تنظیمات حساب کاربری | Nightly Vocab{% endblock %}
+
+{% block content %}
+<div style="max-width: 720px; margin: 24px auto 0;">
+
+  <h1 style="font-size: 22px; font-weight: 700; margin-bottom: 20px;">تنظیمات</h1>
+
+  {% if success_message %}
+    <div class="alert alert-success" style="font-size: 13px; margin-bottom: 20px;">
+      ✓ {{ success_message }}
+    </div>
+  {% endif %}
+
+  {% if error_message %}
+    <div class="alert alert-error" style="font-size: 13px; margin-bottom: 20px;">
+      ✗ {{ error_message }}
+    </div>
+  {% endif %}
+
+  <!-- 1. Learning & SRS Settings -->
+  <div class="card" style="margin-bottom: 24px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      📚 سیستم تکرار فاصله‌دار (SRS) و یادگیری
+    </h2>
+
+    <form method="POST" action="/settings/" id="srs-settings-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_general">
+
+      <!-- Daily Limit -->
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" style="font-weight: 600;">سقف مرور روزانه</label>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">
+          تعداد کل کارت‌های موعد مرور و کارت‌های جدید برای هر روز (تغییر سقف از روز بعد اعمال می‌شود).
+        </p>
+        <select name="daily_limit" class="form-input" style="max-width: 260px;">
+          {% for val, label in profile.DAILY_LIMIT_CHOICES %}
+            <option value="{{ val }}" {% if profile.daily_limit == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Enabled Card Types -->
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" style="font-weight: 600;">انواع کارت‌های فعال در جلسه مرور</label>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 10px;">
+          حداقل یک نوع کارت باید فعال باشد. تغییرات بلافاصله روی نمایش کارت‌ها اعمال می‌شود.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" name="enabled_card_types" value="1" class="card-type-checkbox" {% if 1 in profile.enabled_card_types %}checked{% endif %} style="margin-top: 4px;">
+            <div>
+              <span style="font-weight: 600; font-size: 14px;">نوع ۱: تشخیص معنی</span>
+              <span class="text-muted" style="font-size: 12px; display: block;">نمایش واژه و جمله اصلی؛ یادآوری ذهنی معنی و تأیید</span>
+            </div>
+          </label>
+
+          <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" name="enabled_card_types" value="2" class="card-type-checkbox" {% if 2 in profile.enabled_card_types %}checked{% endif %} style="margin-top: 4px;">
+            <div>
+              <span style="font-weight: 600; font-size: 14px;">نوع ۲: املا با راهنما</span>
+              <span class="text-muted" style="font-size: 12px; display: block;">جای خالی واژه در جمله با جعبه‌های حروفی و نشانه‌های کمکی</span>
+            </div>
+          </label>
+
+          <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" name="enabled_card_types" value="3" class="card-type-checkbox" {% if 3 in profile.enabled_card_types %}checked{% endif %} style="margin-top: 4px;">
+            <div>
+              <span style="font-weight: 600; font-size: 14px;">نوع ۳: املا کامل (دیکته)</span>
+              <span class="text-muted" style="font-size: 12px; display: block;">جای خالی واژه در جمله بدون هیچ راهنمای حروفی؛ تایپ کامل واژه</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Accent preference -->
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" style="font-weight: 600;">لهجه پیش‌فرض صوتی</label>
+        <p class="text-muted" style="font-size: 12px; margin-bottom: 8px;">
+          اولویت پخش تلفظ انسانی و سنتز صوتی مرورگر.
+        </p>
+        <div style="display: flex; gap: 20px;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="accent" value="uk" {% if profile.accent == 'uk' %}checked{% endif %}>
+            <span>بریتانیایی (UK)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="radio" name="accent" value="us" {% if profile.accent == 'us' %}checked{% endif %}>
+            <span>آمریکایی (US)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- AI Extra Example Toggle -->
+      <div style="margin-bottom: 20px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" name="ai_example_enabled" value="1" {% if profile.ai_example_enabled %}checked{% endif %}>
+          <div>
+            <span style="font-weight: 600; font-size: 14px;">تولید مثال اضافی توسط هوش مصنوعی</span>
+            <span class="text-muted" style="font-size: 12px; display: block;">
+              در صورت فعال بودن، هنگام تحلیل متن یک جمله مثال کوتاه مکمل نیز استخراج و پشت کارت نمایش داده می‌شود.
+            </span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Timezone -->
+      <div style="margin-bottom: 24px;">
+        <label class="form-label" style="font-weight: 600;">منطقه زمانی</label>
+        <select name="timezone" class="form-input" style="max-width: 320px;">
+          {% for tz_id, tz_label in popular_tzs %}
+            <option value="{{ tz_id }}" {% if profile.timezone == tz_id %}selected{% endif %}>{{ tz_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Telegram Reminders -->
+      <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 16px;">
+        ✈️ یادآوری روزانه با ربات تلگرام
+      </h3>
+
+      <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            {% if profile.telegram_chat_id %}
+              <div style="font-size: 14px; font-weight: 600; color: #4ade80;">
+                ✓ متصل به تلگرام
+              </div>
+              <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+                شناسه چت: <code style="font-family: monospace;">{{ profile.telegram_chat_id }}</code>
+              </div>
+            {% else %}
+              <div style="font-size: 14px; font-weight: 600;">
+                ربات تلگرام متصل نیست
+              </div>
+              <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+                برای دریافت یادآوری روزانه، ربات را به حساب خود متصل کنید.
+              </div>
+            {% endif %}
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            {% if profile.telegram_chat_id %}
+              <button type="button" class="btn" onclick="disconnectTelegram()" style="font-size: 12px; padding: 6px 12px; color: #ff6b6b;">
+                قطع اتصال تلگرام
+              </button>
+            {% elif tg_deep_link %}
+              <a href="{{ tg_deep_link }}" target="_blank" rel="noopener" class="btn btn-primary" style="font-size: 13px; padding: 6px 14px;">
+                ✈️ اتصال خودکار به ربات
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" name="reminder_enabled" value="1" {% if profile.reminder_enabled %}checked{% endif %}>
+          <span>ارسال نوتیفیکیشن یادآوری مرور در تلگرام</span>
+        </label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <label class="form-label">ساعت یادآوری</label>
+          <input type="time" name="reminder_time" value="{{ profile.reminder_time|time:'H:i' }}" class="form-input" style="max-width: 160px;">
+        </div>
+        <div>
+          <label class="form-label">شناسه عددی تلگرام (تنظیم دستی)</label>
+          <input
+            type="text"
+            name="telegram_chat_id"
+            value="{{ profile.telegram_chat_id|default:'' }}"
+            placeholder="مثال: 123456789"
+            class="form-input"
+            style="direction: ltr;"
+          >
+          <span class="text-muted" style="font-size: 11px; display: block; margin-top: 4px;">
+            می‌توانید شناسه عددی چت را دستی وارد کنید یا از دکمه اتصال خودکار استفاده نمایید.
+          </span>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
+          ذخیره تنظیمات
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 2. AI Settings & BYOK (Patch B.6) -->
+  <div class="card" style="margin-bottom: 24px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      🤖 هوش مصنوعی و سهمیه (AI & BYOK)
+    </h2>
+
+    <!-- Usage Meter -->
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: 600; font-size: 14px;">وضعیت سهمیه هوش مصنوعی:</span>
+        {% if ai_summary.has_own_key %}
+          <span class="brand-badge" style="color: #4ade80;">نامحدود (کلید شخصی فعال است)</span>
+        {% elif ai_summary.ai_access == 'disabled' %}
+          <span class="brand-badge" style="color: #ff6b6b;">غیرفعال شده توسط مدیر</span>
+        {% elif ai_summary.ai_access == 'own_only' %}
+          <span class="brand-badge" style="color: #f59e0b;">فقط با کلید شخصی</span>
+        {% else %}
+          <span class="brand-badge">سهمیه اشتراکی سرور</span>
+        {% endif %}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; font-size: 13px;">
+        <div>
+          <span class="text-muted">مصرف امروز:</span>
+          <strong>{{ ai_summary.today_shared }}</strong> از {{ ai_summary.daily_limit }} فراخوانی
+        </div>
+        <div>
+          <span class="text-muted">مصرف این ماه:</span>
+          <strong>{{ ai_summary.month_shared }}</strong> از {{ ai_summary.monthly_limit }} فراخوانی
+        </div>
+      </div>
+    </div>
+
+    <!-- Personal BYOK Key Card -->
+    <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px;">
+      <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px;">کلید شخصی گوگل جمینای (Gemini BYOK)</h3>
+      <p class="text-muted" style="font-size: 13px; margin-bottom: 16px;">
+        در صورت تمایل می‌توانید کلید اختصاصی خود را وارد کنید تا تحلیل‌ها بدون محدودیت سهمیه اشتراکی انجام شوند.
+        کلید شما با الگوریتم استاندارد AES/Fernet رمزنگاری شده و محفوظ است.
+      </p>
+
+      {% if user_api_key %}
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+          <div>
+            <span style="font-family: monospace; font-size: 14px; direction: ltr; display: inline-block;">••••{{ user_api_key.key_last4 }}</span>
+            <span class="brand-badge" style="margin-right: 8px; {% if user_api_key.enabled %}color: #4ade80;{% else %}color: var(--muted);{% endif %}">
+              {% if user_api_key.enabled %}فعال{% else %}غیرفعال{% endif %}
+            </span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn" onclick="toggleUserApiKey()" style="font-size: 12px; padding: 4px 10px;">
+              {% if user_api_key.enabled %}غیرفعال‌سازی{% else %}فعال‌سازی{% endif %}
+            </button>
+            <button type="button" class="btn" onclick="deleteUserApiKey()" style="font-size: 12px; padding: 4px 10px; color: #ff6b6b;">
+              حذف کلید
+            </button>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Add / Replace Key Form -->
+      <div>
+        <label class="form-label" style="font-size: 13px;">
+          {% if user_api_key %}جایگزینی کلید جدید:{% else %}افزودن کلید جدید:{% endif %}
+        </label>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input
+            type="password"
+            id="byok-input"
+            class="form-input"
+            placeholder="AIzaSy..."
+            style="flex: 1; min-width: 220px; direction: ltr;"
+          >
+          <button type="button" class="btn btn-primary" id="btn-save-byok" onclick="saveUserApiKey()" style="padding: 8px 20px; font-size: 13px;">
+            ذخیره و آزمایش کلید
+          </button>
+        </div>
+        <span class="text-muted" style="font-size: 11px; display: block; margin-top: 6px;">
+          کلید رایگان را از <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color: var(--text); text-decoration: underline;">Google AI Studio</a> دریافت کنید.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. User Personal Backup & Restore -->
+  <div class="card" style="margin-bottom: 24px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 12px; color: var(--text);">
+      پشتیبان‌گیری و بازیابی داده‌های یادگیری
+    </h2>
+    <p class="text-muted" style="font-size: 13px; margin-bottom: 20px;">
+      می‌توانید از تمام واژگان، معانی و متون خود فایل پشتیبان (JSON) دریافت کرده یا فایل‌های ذخیره‌شده قبلی را به این حساب اضافه نمایید (تنظیمات حساب در این فایل قرار نمی‌گیرد).
+    </p>
+
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
+      <div>
+        <span style="font-size: 14px; font-weight: 600; display: block;">دریافت نسخه پشتیبان واژگان و متون</span>
+        <span class="text-muted" style="font-size: 12px;">دانلود همه متون و کارت‌های واژگان در قالب یک فایل استاندارد</span>
+      </div>
+      <a href="/api/user/backup/export/" class="btn btn-primary" style="padding: 8px 20px; font-size: 13px;">
+        📥 دانلود فایل پشتیبان واژگان (.json)
+      </a>
+    </div>
+
+    <!-- User Import Form -->
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px;">
+      <span style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">بازیابی و افزودن واژگان از فایل پشتیبان</span>
+      <form id="user-import-form" onsubmit="handleUserBackupImport(event)" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="file" id="user-backup-file-input" accept=".json" required class="form-input" style="flex: 1; min-width: 220px; padding: 6px;">
+        <button type="submit" id="btn-import-user-backup" class="btn" style="padding: 8px 18px; font-size: 13px;">
+          بارگذاری و بازیابی
+        </button>
+      </form>
+      <div id="user-import-result" style="margin-top: 10px; font-size: 13px; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- Connected Google Account & Switch Account -->
+  <div class="card" style="margin-bottom: 24px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 12px; color: var(--text);">
+      حساب متصل گوگل (Google Account)
+    </h2>
+    <p class="text-muted" style="font-size: 13px; margin-bottom: 16px;">
+      وضعیت حساب گوگل همگام‌شده با اکانت شما. می‌توانید در صورت نیاز حساب گوگل متصل را به حساب دیگری تغییر دهید.
+    </p>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; flex-wrap: wrap; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 42px; height: 42px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--border); flex-shrink: 0;">
+          {% if google_account and google_account.extra_data.picture %}
+            <img src="{{ google_account.extra_data.picture }}" alt="Google Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+          {% else %}
+            <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-weight: 600; font-size: 14px; direction: ltr; text-align: right;">
+            {% if google_account %}
+              {{ google_account.extra_data.email|default:user.email }}
+            {% else %}
+              {{ user.email }}
+            {% endif %}
+          </div>
+          <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+            {% if google_account %}
+              متصل به گوگل ({{ google_account.extra_data.name|default:"کاربر گوگل" }})
+            {% else %}
+              ثبت‌شده با ایمیل / نام کاربری
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <a href="/accounts/google/login/?process=login&prompt=select_account" class="btn" style="padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; border-color: #818cf8; color: var(--text);">
+          <span>🔄</span>
+          <span>تغییر حساب گوگل</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Password Login Settings -->
+  <div class="card" style="margin-bottom: 24px; padding: 24px;">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 12px; color: var(--text);">
+      ورود با رمز عبور (Password Login)
+    </h2>
+    <p class="text-muted" style="font-size: 13px; margin-bottom: 20px;">
+      شما با حساب گوگل ثبت‌نام کرده‌اید. در صورت تمایل، می‌توانید برای حساب خود رمز عبور اختصاصی تعیین کنید تا علاوه بر گوگل، با ایمیل و رمز عبور نیز امکان ورود داشته باشید.
+    </p>
+
+    <form id="password-settings-form" onsubmit="handleSavePassword(event)">
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+          <input type="checkbox" id="chk-password-login" {% if profile.password_login_enabled %}checked{% endif %} onchange="togglePasswordFields()">
+          <span>فعال بودن امکان ورود با ایمیل و رمز عبور</span>
+        </label>
+        <span class="text-muted" style="font-size: 12px; display: block; margin-top: 4px;">
+          در صورت غیرفعال بودن، ورود به حساب شما تنها از طریق حساب گوگل مجاز خواهد بود.
+        </span>
+      </div>
+
+      <div id="password-fields-container" style="{% if not profile.password_login_enabled %}display: none;{% endif %} background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label class="form-label" style="font-size: 12px;">رمز عبور جدید</label>
+            <input type="password" id="input-new-password" placeholder="حداقل ۶ کاراکتر..." class="form-input" style="direction: ltr;">
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 12px;">تکرار رمز عبور جدید</label>
+            <input type="password" id="input-confirm-password" placeholder="تکرار رمز..." class="form-input" style="direction: ltr;">
+          </div>
+        </div>
+        <span class="text-muted" style="font-size: 11px; display: block; margin-top: 8px;">
+          برای تنظیم یا تغییر رمز، رمز جدید را وارد کرده و دکمه ذخیره را بزنید.
+        </span>
+      </div>
+
+      <button type="submit" id="btn-save-password" class="btn btn-primary" style="padding: 8px 20px; font-size: 13px;">
+        ذخیره تنظیمات رمز عبور
+      </button>
+      <div id="password-save-result" style="margin-top: 10px; font-size: 13px; display: none;"></div>
+    </form>
+  </div>
+
+  <!-- 5. Account Actions -->
+  <div class="card" style="margin-bottom: 48px; padding: 24px; border-color: rgba(255, 107, 107, 0.3);">
+    <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 12px; color: #ff6b6b;">
+      حساب کاربری و حریم خصوصی
+    </h2>
+    <p class="text-muted" style="font-size: 13px; margin-bottom: 20px;">
+      در صورت ثبت درخواست حذف، مهلت ۲۴ ساعته (۱ روزه) برای انصراف خواهید داشت.
+    </p>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <a href="/accounts/logout/" class="btn" style="padding: 8px 20px; font-size: 13px;">
+        خروج از حساب کاربری
+      </a>
+
+      <button type="button" class="btn" onclick="openDeleteAccountModal()" style="padding: 8px 20px; font-size: 13px; color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5);">
+        حذف حساب کاربری و تمام داده‌ها
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+<div id="delete-account-modal" class="modal-backdrop" style="display: none;">
+  <div class="modal-content" style="max-width: 500px; padding: 24px; text-align: center;">
+    <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
+    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 12px; color: #ff6b6b;">
+      درخواست حذف حساب کاربری
+    </h3>
+    <div class="text-muted" style="font-size: 13px; margin-bottom: 20px; line-height: 1.8; text-align: justify;">
+      با ثبت این درخواست، یک ایمیل اطلاع‌رسانی برای شما ارسال شده و حسابتان در صف حذف <strong>۲۴ ساعته (۱ روز)</strong> قرار می‌گیرد.
+      <br><br>
+      <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; color: #f59e0b; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px;">
+        💡 <strong>نکته مهم:</strong> چنانچه ظرف ۲۴ ساعت آینده مجدداً وارد سایت شوید، این درخواست به‌صورت خودکار لغو شده و حسابتان با تمامی اطلاعات حفظ خواهد شد. پس از ۲۴ ساعت، اطلاعات به‌طور کامل از سرور پاک می‌شوند.
+      </div>
+    </div>
+
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 20px;">
+      <label style="display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-size: 13px; user-select: none;">
+        <input type="checkbox" id="confirm-delete-checkbox" onchange="onDeleteCheckboxChanged()">
+        <span>شرایط بالا را مطالعه کردم و موافقت خود را اعلام می‌کنم.</span>
+      </label>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 12px;">
+      <button type="button" class="btn" onclick="closeDeleteAccountModal()" style="padding: 10px 20px;">انصراف</button>
+      <button type="button" id="btn-confirm-delete" class="btn" onclick="confirmDeleteAccount()" disabled style="background: #e11d48; border-color: #e11d48; color: #fff; font-weight: 700; opacity: 0.45; padding: 10px 20px; cursor: not-allowed;">
+        تایید و ثبت درخواست حذف (5)
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  // Prevent unchecking all card types
+  const srsForm = document.getElementById("srs-settings-form");
+  const cardTypeCheckboxes = document.querySelectorAll(".card-type-checkbox");
+
+  srsForm.addEventListener("submit", (e) => {
+    const checked = Array.from(cardTypeCheckboxes).filter(cb => cb.checked);
+    if (checked.length === 0) {
+      e.preventDefault();
+      alert("حداقل یک نوع کارت باید فعال باشد.");
+    }
+  });
+
+  // BYOK Save and Test
+  async function saveUserApiKey() {
+    const inp = document.getElementById("byok-input");
+    const key = inp.value.trim();
+    if (!key) {
+      alert("لطفاً کلید API را وارد کنید.");
+      return;
+    }
+
+    const btn = document.getElementById("btn-save-byok");
+    btn.disabled = true;
+    btn.textContent = "در حال اعتبارسنجی...";
+
+    try {
+      const res = await fetch("/api/settings/ai-key/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": CSRF_TOKEN,
+        },
+        body: JSON.stringify({ api_key: key }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("کلید با موفقیت آزمایش و رمزنگاری شد.");
+        window.location.reload();
+      } else {
+        alert(data.error || "کلید نامعتبر است.");
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور هنگام آزمایش کلید.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "ذخیره و آزمایش کلید";
+    }
+  }
+
+  // Toggle user API key
+  async function toggleUserApiKey() {
+    try {
+      const res = await fetch("/api/settings/ai-key/toggle/", {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("خطا در تغییر وضعیت کلید.");
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  }
+
+  // Delete user API key
+  async function deleteUserApiKey() {
+    if (!confirm("آیا از حذف کلید شخصی خود اطمینان دارید؟ سیستم به سهمیه اشتراکی سرور بازخواهد گشت.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/settings/ai-key/delete/", {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("خطا در حذف کلید.");
+      }
+  // Disconnect Telegram
+  async function disconnectTelegram() {
+    if (!confirm("آیا از قطع اتصال تلگرام اطمینان دارید؟ ارسال یادآوری‌های روزانه متوقف خواهد شد.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/settings/telegram/disconnect/", {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("خطا در قطع اتصال تلگرام.");
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+    }
+  }
+
+  // Account deletion modal with 5-second countdown and checkbox gate
+  const delModal = document.getElementById("delete-account-modal");
+  const btnConfirmDelete = document.getElementById("btn-confirm-delete");
+  const chkConfirmDelete = document.getElementById("confirm-delete-checkbox");
+  let deleteCountdown = 5;
+  let deleteTimer = null;
+
+  function openDeleteAccountModal() {
+    delModal.style.display = "flex";
+    chkConfirmDelete.checked = false;
+    deleteCountdown = 5;
+    updateDeleteButtonState();
+
+    if (deleteTimer) clearInterval(deleteTimer);
+    deleteTimer = setInterval(() => {
+      deleteCountdown--;
+      if (deleteCountdown <= 0) {
+        clearInterval(deleteTimer);
+        deleteCountdown = 0;
+      }
+      updateDeleteButtonState();
+    }, 1000);
+  }
+
+  function closeDeleteAccountModal() {
+    delModal.style.display = "none";
+    if (deleteTimer) clearInterval(deleteTimer);
+  }
+
+  function onDeleteCheckboxChanged() {
+    updateDeleteButtonState();
+  }
+
+  function updateDeleteButtonState() {
+    if (!btnConfirmDelete) return;
+    if (deleteCountdown > 0) {
+      btnConfirmDelete.disabled = true;
+      btnConfirmDelete.style.opacity = "0.45";
+      btnConfirmDelete.style.cursor = "not-allowed";
+      btnConfirmDelete.innerText = `تایید و ثبت درخواست حذف (${deleteCountdown})`;
+    } else {
+      btnConfirmDelete.innerText = "تایید و ثبت درخواست حذف";
+      if (chkConfirmDelete.checked) {
+        btnConfirmDelete.disabled = false;
+        btnConfirmDelete.style.opacity = "1";
+        btnConfirmDelete.style.cursor = "pointer";
+      } else {
+        btnConfirmDelete.disabled = true;
+        btnConfirmDelete.style.opacity = "0.45";
+        btnConfirmDelete.style.cursor = "not-allowed";
+      }
+    }
+  }
+
+  async function confirmDeleteAccount() {
+    if (deleteCountdown > 0 || !chkConfirmDelete.checked) return;
+
+    try {
+      btnConfirmDelete.disabled = true;
+      btnConfirmDelete.innerText = "در حال ثبت درخواست...";
+      const res = await fetch("/api/accounts/delete/", {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(data.message || "درخواست حذف حساب شما با موفقیت ثبت شد.");
+        window.location.href = data.redirect || "/";
+      } else {
+        alert(data.error || "خطا در ثبت درخواست حذف حساب.");
+        updateDeleteButtonState();
+      }
+    } catch (err) {
+      alert("خطای ارتباط با سرور.");
+      updateDeleteButtonState();
+    }
+  }
+
+  // User Backup Import
+  async function handleUserBackupImport(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById("user-backup-file-input");
+    const resultBox = document.getElementById("user-import-result");
+    const btn = document.getElementById("btn-import-user-backup");
+
+    if (!fileInput.files || !fileInput.files[0]) {
+      alert("لطفاً فایل پشتیبان را انتخاب کنید.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("backup_file", fileInput.files[0]);
+
+    resultBox.style.display = "block";
+    resultBox.style.color = "var(--muted)";
+    resultBox.innerText = "در حال بازیابی اطلاعات و افزودن واژگان...";
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/api/user/backup/import/", {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        resultBox.style.color = "#4ade80";
+        resultBox.innerText = "✓ " + data.message;
+        fileInput.value = "";
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        resultBox.style.color = "#ff6b6b";
+        resultBox.innerText = "✗ " + (data.error || "خطا در بازیابی فایل.");
+      }
+    } catch (err) {
+      resultBox.style.color = "#ff6b6b";
+      resultBox.innerText = "✗ خطای ارتباط با سرور هنگام بارگذاری فایل.";
+  // Password Login Settings
+  function togglePasswordFields() {
+    const chk = document.getElementById("chk-password-login");
+    const container = document.getElementById("password-fields-container");
+    if (chk && container) {
+      container.style.display = chk.checked ? "block" : "none";
+    }
+  }
+
+  async function handleSavePassword(e) {
+    e.preventDefault();
+    const enabled = document.getElementById("chk-password-login").checked;
+    const newPassword = document.getElementById("input-new-password").value;
+    const confirmPassword = document.getElementById("input-confirm-password").value;
+    const resultBox = document.getElementById("password-save-result");
+    const btn = document.getElementById("btn-save-password");
+
+    if (enabled && newPassword && newPassword !== confirmPassword) {
+      resultBox.style.display = "block";
+      resultBox.style.color = "#ff6b6b";
+      resultBox.innerText = "✗ رمز عبور و تکرار آن یکسان نیستند.";
+      return;
+    }
+
+    btn.disabled = true;
+    resultBox.style.display = "block";
+    resultBox.style.color = "var(--muted)";
+    resultBox.innerText = "در حال ذخیره تنظیمات رمز عبور...";
+
+    try {
+      const res = await fetch("/api/settings/password/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": CSRF_TOKEN,
+        },
+        body: JSON.stringify({
+          enabled: enabled,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        resultBox.style.color = "#4ade80";
+        resultBox.innerText = "✓ " + data.message;
+        document.getElementById("input-new-password").value = "";
+        document.getElementById("input-confirm-password").value = "";
+      } else {
+        resultBox.style.color = "#ff6b6b";
+        resultBox.innerText = "✗ " + (data.error || "خطا در ذخیره تنظیمات رمز عبور.");
+      }
+    } catch (err) {
+      resultBox.style.color = "#ff6b6b";
+      resultBox.innerText = "✗ خطای ارتباط با سرور.";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

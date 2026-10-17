@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div style="margin-top: 24px; padding-bottom: 140px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; gap: 8px;">
+      <a href="/texts/{{ text.id }}/" class="btn" style="font-size: 13px; padding: 6px 12px;">مشاهده متن</a>
+      <a href="/texts/" class="btn" style="font-size: 13px; padding: 6px 12px;">متن‌های من</a>
+    </div>
+    <div style="text-align: left;">
+      <h1 style="font-size: 20px; font-weight: 700; direction: ltr;">{{ text.title }}</h1>
+    </div>
+  </div>
+
+  <p class="text-muted" style="font-size: 13px; margin-top: 0; margin-bottom: 16px;">
+    برای انتخاب کلمه تکی روی آن ضربه بزنید. برای انتخاب عبارت (تا ۵ کلمه)، انگشت یا ماوس را روی آن بکشید.
+  </p>
+
+  <div id="selection-alert" class="alert alert-error" style="display: none;"></div>
+
+  {% if saved_cards %}
+  <div style="margin-bottom: 14px; padding: 10px 14px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); font-size: 13px; color: #10b981; display:flex; align-items:center; gap:8px;">
+    <span style="font-size: 16px;">✓</span>
+    <span><strong>{{ saved_cards|length }} کلمه</strong> از این متن قبلاً در کتابخانه شما ثبت شده است (با هایلایت سبز کم‌رنگ مشخص شده‌اند).</span>
+  </div>
+  {% endif %}
+
+  <!-- Reading Text Block with Tokenized Words and Plain Spaces/Punctuation -->
+  <div
+    id="reading-container"
+    class="reading-surface"
+    dir="ltr"
+    lang="en"
+    style="margin-right: auto !important; margin-left: 0 !important;"
+    data-text-id="{{ text.id }}"
+  >{% for seg in segments %}{% if seg.type == "token" %}<span class="tok{% if seg.is_saved %} already-saved{% endif %}" data-start="{{ seg.tok.start }}" data-end="{{ seg.tok.end }}" data-sent="{{ seg.tok.sent_idx }}" {% if seg.is_saved and seg.saved_card %}data-saved="1" data-card-id="{{ seg.saved_card.id }}" data-card-start="{{ seg.saved_card.char_start }}" data-card-end="{{ seg.saved_card.char_end }}" data-meaning="{{ seg.saved_card.meaning|escape }}" data-pos="{{ seg.saved_card.pos|escape }}" data-lemma="{{ seg.saved_card.lemma|escape }}" data-example="{{ seg.saved_card.ai_example|escape }}" title="قبلاً ذخیره شده (برای ویرایش کلیک کنید): {{ seg.saved_card.meaning }}"{% endif %}>{{ seg.tok.text }}</span>{% else %}{{ seg.text }}{% endif %}{% endfor %}</div>
+
+  <!-- Manual Entry Section / Modal (Collapsible) -->
+  <div id="entry-section" class="card" style="display: none; margin-top: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px;">
+      <div>
+        <h2 style="font-size: 18px; font-weight: 700;">تکمیل معانی کلمات انتخابی</h2>
+        <p class="text-muted" style="font-size: 13px; margin-top: 4px;">
+          معنی فارسی و نقش هر واژه را مشخص کنید تا در سیستم تکرار فاصله‌دار (SRS) قرار گیرد.
+        </p>
+      </div>
+      <button id="btn-back-to-select" type="button" class="btn" style="font-size: 13px;">
+        ← بازگشت به متن
+      </button>
+    </div>
+
+    <div class="table-container" style="margin-top: 0;">
+      <table class="preview-table">
+        <thead>
+          <tr>
+            <th style="text-align: left; width: 32%;">واژه / شکل ساده (Lemma)</th>
+            <th style="width: 22%;">نقش دستوری (POS)</th>
+            <th style="width: 38%;">معنی فارسی</th>
+            <th style="width: 8%; text-align: center;">حذف</th>
+          </tr>
+        </thead>
+        <tbody id="preview-tbody">
+          <!-- Populated dynamically by text_selection.js -->
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 12px;">
+      <span id="save-status-text" style="font-size: 13px; font-weight: 600;"></span>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button id="btn-cancel-entry" type="button" class="btn">انصراف</button>
+        <button id="btn-save-and-view" type="button" class="btn" style="padding: 10px 16px; border-color: rgba(16, 185, 129, 0.4); color: #10b981; font-weight: 600;">
+          ذخیره و بازگشت به متن
+        </button>
+        <button id="btn-save-cards" type="button" class="btn" style="padding: 10px 22px; background: #10b981; color: #ffffff; border: 1px solid #059669; font-weight: 700; border-radius: 8px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);">
+          ذخیره کارت‌ها و شروع مرور
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sticky Bottom Bar with Mode Toggle, Chips, AI button, and Manual Entry -->
+<div id="sticky-bottom-bar" class="sticky-bottom-bar">
+  <div class="sticky-bottom-inner">
+    <div class="chips-container" id="chips-container">
+      <span class="text-muted" id="no-chips-placeholder" style="font-size: 13px; padding: 4px 0;">
+        کلمه‌ای انتخاب نشده است (روی کلمات کلیک کنید یا بکشید).
+      </span>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 6px;">
+      <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input type="checkbox" id="chk-ai-example" {% if ai_example_enabled %}checked{% endif %}>
+        <span>تولید مثال انگلیسی اضافی با هوش مصنوعی</span>
+      </label>
+      <span style="font-size: 11px;">🔒 ارسال امن به هوش مصنوعی</span>
+    </div>
+
+    <div class="bottom-actions">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button id="btn-phrase-mode-toggle" type="button" class="btn" style="font-size: 13px; padding: 6px 12px;">
+          حالت عبارت: خاموش
+        </button>
+        <span id="selected-badge" class="brand-badge" style="font-size: 12px;">۰ مورد</span>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-proceed-to-entry" type="button" class="btn" style="font-size: 13px; padding: 8px 14px;" disabled>
+          ورود دستی
+        </button>
+        <button id="btn-ai-analyze" type="button" class="btn btn-primary" style="padding: 8px 18px;" disabled>
+          <span id="ai-btn-text">استخراج با AI ✨</span>
+          <span id="ai-spinner" style="display: none; animation: spin 1s linear infinite;">⏳</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  window.LEXICONTEXT_CONFIG = {
+    textId: {{ text.id }},
+    csrfToken: "{{ csrf_token }}",
+    posChoices: [
+      {% for val, label in pos_choices %}
+        { value: "{{ val }}", label: "{{ label }}" },
+      {% endfor %}
+    ],
+    savedCards: [
+      {% for c in saved_cards %}
+        {
+          id: {{ c.id }},
+          start: {{ c.char_start|default:"null" }},
+          end: {{ c.char_end|default:"null" }},
+          word: "{{ c.word|escapejs }}",
+          lemma: "{{ c.lemma|escapejs }}",
+          pos: "{{ c.pos|escapejs }}",
+          meaning: "{{ c.meaning|escapejs }}",
+          example: "{{ c.ai_example|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  };
+</script>
+<script src="{% static 'js/text_selection.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

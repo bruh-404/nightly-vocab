@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}ورود متن جدید | Nightly Vocab{% endblock %}
+
+
+{% block content %}
+<div class="card" style="margin-top: 32px; max-width: 680px; margin-left: auto; margin-right: auto;">
+  <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
+    <h1 style="font-size: 20px; font-weight: 700;">ورود متن شبانه جدید</h1>
+    <p class="text-muted" style="font-size: 13px; margin-top: 4px;">
+      متن انگلیسی مورد نظرتان را وارد کنید تا کلمات و عبارت‌های ناآشنا را از آن استخراج کنید.
+    </p>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-error">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <form method="post" action="/texts/new/">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="id_title" class="form-label">عنوان متن (اختیاری)</label>
+      <input
+        type="text"
+        id="id_title"
+        name="title"
+        class="form-input"
+        placeholder="مثال: Chapter 1 - The Beginning (در صورت خالی بودن، خودکار تولید می‌شود)"
+        value="{{ title_val|default:'' }}"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="id_body" class="form-label">متن انگلیسی <span style="color: #ff6b6b;">*</span></label>
+      <textarea
+        id="id_body"
+        name="body"
+        class="form-textarea"
+        style="min-height: 220px; font-size: 16px; direction: ltr; text-align: left;"
+        placeholder="Paste your English text here..."
+        required
+      >{{ body_val|default:'' }}</textarea>
+    </div>
+
+    <div class="alert alert-info" style="font-size: 12px; margin-bottom: 24px;">
+      💡 کلمات و عباراتی که در مرحله بعد انتخاب می‌کنید، همراه با جمله و بستر متن برای مرور ذخیره می‌شوند.
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <a href="/texts/" class="btn">انصراف</a>
+      <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
+        ادامه به انتخاب کلمات ←
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
