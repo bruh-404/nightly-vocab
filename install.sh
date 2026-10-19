@@ -68,14 +68,23 @@ read -rp "دامنه یا زیردامنه اختصاصی سامانه را وا
 USER_DOMAIN=$(echo "${USER_DOMAIN}" | tr -d ' ' | tr '[:upper:]' '[:lower:]')
 
 while [[ -z "${USER_DOMAIN}" ]]; do
-    echo -e "${RED}[!] وارد کردن دامنه برای ساخت گواهی SSL الزامی است.${NC}"
-    read -rp "دامنه اختصاصی خود را وارد کنید: " USER_DOMAIN
+    echo -e "${RED}[!] وارد کردن دامنه برای ساخت گواهی SSL و راه‌اندازی وب‌سایت الزامی است.${NC}"
+    read -rp "دامنه اختصاصی خود را وارد کنید (مثال: vocab.domain.com): " USER_DOMAIN
     USER_DOMAIN=$(echo "${USER_DOMAIN}" | tr -d ' ' | tr '[:upper:]' '[:lower:]')
 done
 
-read -rp "ایمیل برای صدور گواهی SSL (اینتر = admin@${USER_DOMAIN}): " USER_EMAIL
-if [[ -z "${USER_EMAIL}" ]]; then
-    USER_EMAIL="admin@${USER_DOMAIN}"
+read -rp "آیا دامنه شما پشت CDN (کلادفلر / ابر آروان) است یا پورت ۴۴۳ توسط سرویس دیگری (مثل Xray) اشغال است؟ (y/N): " USE_CDN
+if [[ "${USE_CDN}" =~ ^[Yy]$ ]]; then
+    IS_CDN=true
+    SSL_REDIRECT_SETTING="False"
+    echo -e "${GREEN}[✓] حالت اتصال شبکه با CDN فعال شد (گوش به زنگ روی پورت ۸۰، بدون تداخل با پورت ۴۴۳ یا Xray).${NC}"
+else
+    IS_CDN=false
+    SSL_REDIRECT_SETTING="True"
+    read -rp "ایمیل برای صدور گواهی SSL (اینتر = admin@${USER_DOMAIN}): " USER_EMAIL
+    if [[ -z "${USER_EMAIL}" ]]; then
+        USER_EMAIL="admin@${USER_DOMAIN}"
+    fi
 fi
 
 echo ""
@@ -114,7 +123,12 @@ echo -e "${CYAN}${BOLD}[*] در حال آماده‌سازی و نصب پیش‌
 if [[ "${OS}" == "ubuntu" || "${OS}" == "debian" ]]; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
-    apt-get install -y -qq curl git python3 python3-venv python3-pip nginx certbot python3-certbot-nginx
+    apt-get install -y -qq curl git python3 python3-venv python3-pip python3-full python3-pip-whl nginx certbot python3-certbot-nginx 2>/dev/null || \
+    apt-get install -y -qq curl git python3 python3-venv python3-pip nginx certbot python3-certbot-nginx 2>/dev/null || true
+    PY_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "")
+    if [[ -n "${PY_VER}" ]]; then
+        apt-get install -y -qq "python${PY_VER}-venv" 2>/dev/null || true
+    fi
 elif [[ "${OS}" == "centos" || "${OS}" == "rhel" || "${OS}" == "almalinux" || "${OS}" == "rocky" ]]; then
     yum install -y -q epel-release || true
     yum install -y -q curl git python3 python3-pip nginx certbot python3-certbot-nginx
@@ -164,7 +178,7 @@ DJANGO_SECRET_KEY=${RANDOM_SECRET}
 DEBUG=False
 ALLOWED_HOSTS=${USER_DOMAIN},127.0.0.1,localhost
 CSRF_TRUSTED_ORIGINS=https://${USER_DOMAIN}
-SECURE_SSL_REDIRECT=True
+SECURE_SSL_REDIRECT=${SSL_REDIRECT_SETTING:-True}
 
 # Database (Default zero-config SQLite, customizable to PostgreSQL)
 DATABASE_URL=sqlite:///${INSTALL_DIR}/db.sqlite3
@@ -222,6 +236,8 @@ else:
 
 # Seed SiteConfig if values provided
 from apps.services.models import SiteConfig
+from django.contrib.sites.models import Site
+Site.objects.update_or_create(id=1, defaults={"domain": "${USER_DOMAIN}", "name": "Nightly Vocab"})
 cfg = SiteConfig.get()
 if "${GEMINI_API_KEY}":
     cfg.set_shared_ai_key("${GEMINI_API_KEY}")
@@ -264,22 +280,55 @@ systemctl enable "${SERVICE_NAME}"
 systemctl restart "${SERVICE_NAME}"
 
 # 11. Obtain SSL Certificate and Configure Nginx
-echo -e "${CYAN}[*] درخواست گواهی رایگان SSL از Let's Encrypt برای ${USER_DOMAIN}...${NC}"
-systemctl stop nginx 2>/dev/null || true
-
-# Try to acquire SSL
-if certbot certonly --standalone -d "${USER_DOMAIN}" --non-interactive --agree-tos --email "${USER_EMAIL}"; then
-    SSL_OK=true
-else
-    echo -e "${YELLOW}[!] هشدار: گواهی اتوماتیک Let's Encrypt صادر نشد (ممکن است رکورد DNS دامنه هنوز در اینترنت منتشر نشده باشد).${NC}"
-    echo -e "${YELLOW}سایت روی HTTP موقتاً فعال می‌شود و بعداً با دستور 'vocab ssl' می‌توانید گواهی را ثبت کنید.${NC}"
-    SSL_OK=false
-fi
-
-# Configure Nginx Virtual Host
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
-if [[ "${SSL_OK}" == "true" ]]; then
+
+if [[ "${IS_CDN}" == "true" ]]; then
+    echo -e "${GREEN}[*] پیکربندی وب‌سرور Nginx روی پورت ۸۰ برای اتصال پشت CDN (بدون تداخل با پورت ۴۴۳ / Xray)...${NC}"
     cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${USER_DOMAIN};
+
+    client_max_body_size 25M;
+
+    location /static/ {
+        alias ${INSTALL_DIR}/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+    }
+
+    location /media/ {
+        alias ${INSTALL_DIR}/media/;
+        expires 7d;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_redirect off;
+    }
+}
+EOF
+else
+    echo -e "${CYAN}[*] درخواست گواهی رایگان SSL از Let's Encrypt برای ${USER_DOMAIN}...${NC}"
+    systemctl stop nginx 2>/dev/null || true
+
+    # Try to acquire SSL
+    if certbot certonly --standalone -d "${USER_DOMAIN}" --non-interactive --agree-tos --email "${USER_EMAIL}"; then
+        SSL_OK=true
+    else
+        echo -e "${YELLOW}[!] هشدار: گواهی اتوماتیک Let's Encrypt صادر نشد (ممکن است رکورد DNS دامنه هنوز در اینترنت منتشر نشده باشد).${NC}"
+        echo -e "${YELLOW}سایت روی HTTP موقتاً فعال می‌شود و بعداً با دستور 'vocab ssl' می‌توانید گواهی را ثبت کنید.${NC}"
+        SSL_OK=false
+    fi
+
+    # Configure Nginx Virtual Host
+    if [[ "${SSL_OK}" == "true" ]]; then
+        cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
 server {
     listen 80;
     server_name ${USER_DOMAIN};
@@ -320,8 +369,8 @@ server {
     }
 }
 EOF
-else
-    cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
+    else
+        cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
 server {
     listen 80;
     server_name ${USER_DOMAIN};
@@ -348,6 +397,7 @@ server {
     }
 }
 EOF
+    fi
 fi
 
 ln -sf "/etc/nginx/sites-available/nightly-vocab" "/etc/nginx/sites-enabled/nightly-vocab"

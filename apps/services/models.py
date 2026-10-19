@@ -314,21 +314,38 @@ class SiteConfig(models.Model):
         return ""
 
     def sync_google_social_app(self) -> None:
-        """Synchronizes Google OAuth credentials with django-allauth SocialApp."""
+        """Synchronizes Google OAuth credentials with django-allauth SocialApp and updates Site domain."""
         cid = self.get_google_client_id()
         sec = self.get_google_client_secret()
         if cid and sec:
             try:
                 from allauth.socialaccount.models import SocialApp
                 from django.contrib.sites.models import Site
-                app, _ = SocialApp.objects.get_or_create(provider="google")
+
+                # Deduplicate any existing Google apps to prevent MultipleObjectsReturned
+                existing = list(SocialApp.objects.filter(provider="google").order_by("id"))
+                if existing:
+                    app = existing[0]
+                    for duplicate in existing[1:]:
+                        duplicate.delete()
+                else:
+                    app = SocialApp(provider="google")
+
                 app.name = "Google"
                 app.client_id = cid
                 app.secret = sec
                 app.save()
+
+                # Sync django.contrib.sites domain
                 site = Site.objects.filter(pk=1).first()
-                if site and site not in app.sites.all():
-                    app.sites.add(site)
+                if site:
+                    current_domain = getattr(settings, "DOMAIN", "")
+                    if current_domain and (site.domain == "example.com" or site.domain != current_domain):
+                        site.domain = current_domain
+                        site.name = "Nightly Vocab"
+                        site.save()
+                    if site not in app.sites.all():
+                        app.sites.add(site)
             except Exception:
                 pass
 

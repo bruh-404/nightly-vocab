@@ -150,8 +150,8 @@ update_app() {
 
 # Change Domain & SSL
 configure_ssl() {
-    echo -e "${CYAN}${BOLD}[*] Configure Domain & SSL Certificate (Let's Encrypt)...${NC}"
-    read -rp "Enter new domain name (e.g. vocab.yourdomain.com): " NEW_DOMAIN
+    echo -e "${CYAN}${BOLD}[*] Configure Domain & SSL / CDN Mode${NC}"
+    read -rp "Enter domain name (e.g. vocab.yourdomain.com): " NEW_DOMAIN
     NEW_DOMAIN=$(echo "${NEW_DOMAIN}" | tr -d ' ' | tr '[:upper:]' '[:lower:]')
 
     if [[ -z "${NEW_DOMAIN}" ]]; then
@@ -159,18 +159,12 @@ configure_ssl() {
         return 1
     fi
 
-    read -rp "Enter email for SSL certificate (Enter = admin@${NEW_DOMAIN}): " SSL_EMAIL
-    if [[ -z "${SSL_EMAIL}" ]]; then
-        SSL_EMAIL="admin@${NEW_DOMAIN}"
-    fi
-
-    echo -e "${YELLOW}[*] Obtaining SSL certificate for ${NEW_DOMAIN}...${NC}"
-    systemctl stop nginx || true
-    certbot certonly --standalone -d "${NEW_DOMAIN}" --non-interactive --agree-tos --email "${SSL_EMAIL}" || {
-        echo -e "${RED}[!] Failed to obtain SSL certificate. Verify DNS A record points to this server and port 80 is open.${NC}"
-        systemctl start nginx || true
-        return 1
-    }
+    echo ""
+    echo -e "Choose connection mode:"
+    echo -e "  1) Cloudflare / ArvanCloud CDN Mode (Port 80 only - avoids Port 443 conflict with Xray)"
+    echo -e "  2) Direct Let's Encrypt SSL (Port 443 + 80 redirect - standard server)"
+    read -rp "Select option [1/2] (Default: 1): " SSL_MODE
+    SSL_MODE=${SSL_MODE:-1}
 
     # Update .env
     sed -i "s|^DOMAIN=.*|DOMAIN=${NEW_DOMAIN}|" "${ENV_FILE}"
@@ -178,8 +172,24 @@ configure_ssl() {
     sed -i "s|^ALLOWED_HOSTS=.*|ALLOWED_HOSTS=${NEW_DOMAIN},127.0.0.1,localhost|" "${ENV_FILE}"
     sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://${NEW_DOMAIN}|" "${ENV_FILE}"
 
-    # Update Nginx config
-    cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
+    if [[ "${SSL_MODE}" == "2" ]]; then
+        read -rp "Enter email for SSL certificate (Enter = admin@${NEW_DOMAIN}): " SSL_EMAIL
+        if [[ -z "${SSL_EMAIL}" ]]; then
+            SSL_EMAIL="admin@${NEW_DOMAIN}"
+        fi
+
+        echo -e "${YELLOW}[*] Obtaining SSL certificate for ${NEW_DOMAIN}...${NC}"
+        systemctl stop nginx || true
+        certbot certonly --standalone -d "${NEW_DOMAIN}" --non-interactive --agree-tos --email "${SSL_EMAIL}" || {
+            echo -e "${RED}[!] Failed to obtain SSL certificate. Verify DNS A record points to this server and port 80 is open.${NC}"
+            systemctl start nginx || true
+            return 1
+        }
+
+        sed -i "s|^SECURE_SSL_REDIRECT=.*|SECURE_SSL_REDIRECT=True|" "${ENV_FILE}"
+
+        # Update Nginx config for direct SSL
+        cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
 server {
     listen 80;
     server_name ${NEW_DOMAIN};
@@ -220,10 +230,48 @@ server {
     }
 }
 EOF
+    else
+        sed -i "s|^SECURE_SSL_REDIRECT=.*|SECURE_SSL_REDIRECT=False|" "${ENV_FILE}"
+
+        # Update Nginx config for CDN proxy mode (Port 80 only)
+        cat > "/etc/nginx/sites-available/nightly-vocab" << EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${NEW_DOMAIN};
+
+    client_max_body_size 25M;
+
+    location /static/ {
+        alias ${INSTALL_DIR}/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+    }
+
+    location /media/ {
+        alias ${INSTALL_DIR}/media/;
+        expires 7d;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_redirect off;
+    }
+}
+EOF
+    fi
+
+    # Sync django.contrib.sites domain
+    ${PYTHON_BIN} manage.py shell -c "from django.contrib.sites.models import Site; Site.objects.filter(pk=1).update(domain='${NEW_DOMAIN}', name='Nightly Vocab')" 2>/dev/null || true
+
     ln -sf "/etc/nginx/sites-available/nightly-vocab" "/etc/nginx/sites-enabled/nightly-vocab"
     nginx -t && systemctl restart nginx
     systemctl restart "${SERVICE_NAME}"
-    echo -e "${GREEN}[✓] Domain and SSL updated successfully: https://${NEW_DOMAIN}${NC}"
+    echo -e "${GREEN}[✓] Domain and web server updated successfully: https://${NEW_DOMAIN}${NC}"
 }
 
 # Change AI and Bot Secrets
