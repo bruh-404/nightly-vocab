@@ -708,9 +708,9 @@
         const exPopup = document.createElement("div");
         exPopup.className = "example-popup-box";
         exPopup.innerHTML = `
-          <div style="font-size: 11px; font-weight: 700; color: #818cf8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <span>✨ مثال جمله‌ای هوش مصنوعی</span>
-            <span style="font-size: 10px; opacity: 0.7;">(بستن ✕)</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11.5px; font-weight: 700; color: #818cf8;">✨ مثال جمله‌ای هوش مصنوعی</span>
+            <button type="button" class="btn-close-example-popup" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 4px; border-radius: 4px;" title="بستن">✕</button>
           </div>
           <div style="direction: ltr; text-align: left; font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--text); line-height: 1.5; font-weight: 500;">
             ${escapeHtml(sel.example)}
@@ -718,6 +718,10 @@
         `;
 
         const updatePopupPosition = () => {
+          if (window.innerWidth <= 768) {
+            exPopup.classList.remove("popup-upwards");
+            return;
+          }
           const rect = exBadge.getBoundingClientRect();
           const spaceBelow = window.innerHeight - rect.bottom;
           const isBottomRows = index >= selections.length - 2;
@@ -738,18 +742,29 @@
           }
         });
 
-        exBadge.addEventListener("mouseenter", () => {
-          updatePopupPosition();
-          exPopup.classList.add("show");
-        });
+        // Only attach mouseenter on devices that actually support hover (desktops)
+        if (window.matchMedia && window.matchMedia("(hover: hover)").matches) {
+          exBadge.addEventListener("mouseenter", () => {
+            document.querySelectorAll(".example-popup-box.show").forEach((p) => p.classList.remove("show"));
+            updatePopupPosition();
+            exPopup.classList.add("show");
+          });
 
-        exContainer.addEventListener("mouseleave", () => {
-          exPopup.classList.remove("show");
-        });
+          exContainer.addEventListener("mouseleave", () => {
+            exPopup.classList.remove("show");
+          });
+        }
+
+        const closeBtn = exPopup.querySelector(".btn-close-example-popup");
+        if (closeBtn) {
+          closeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            exPopup.classList.remove("show");
+          });
+        }
 
         exPopup.addEventListener("click", (e) => {
           e.stopPropagation();
-          exPopup.classList.remove("show");
         });
 
         exContainer.appendChild(exBadge);
@@ -1086,10 +1101,15 @@
     btnSaveAndView.addEventListener("click", () => saveCardsAction("view"));
   }
 
-  // Dismiss open example popups on outside click
-  document.addEventListener("click", () => {
+  // Dismiss open example popups on outside click or tap
+  const dismissAllPopups = (e) => {
+    if (e && e.target && (e.target.closest(".word-example-tooltip-wrap") || e.target.closest(".example-popup-box"))) {
+      return;
+    }
     document.querySelectorAll(".example-popup-box.show").forEach((p) => p.classList.remove("show"));
-  });
+  };
+  document.addEventListener("click", dismissAllPopups);
+  document.addEventListener("touchend", dismissAllPopups, { passive: true });
 
   window.saveCardsAction = saveCardsAction;
 })();
