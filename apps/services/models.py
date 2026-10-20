@@ -21,7 +21,7 @@ class SiteConfig(models.Model):
     )
     ai_model = models.CharField(
         max_length=60,
-        default="gemini-1.5-flash",
+        default="gemini-flash-latest",
         help_text="مدل پیش‌فرض برای هوش مصنوعی",
     )
     shared_ai_key_enc = models.TextField(

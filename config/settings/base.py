@@ -135,7 +135,7 @@ SOCIALACCOUNT_PROVIDERS = {
 # AI and External Service Defaults
 AI_PROVIDER = env("AI_PROVIDER", default="gemini")
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
-AI_MODEL = env("AI_MODEL", default="gemini-1.5-flash")
+AI_MODEL = env("AI_MODEL", default="gemini-flash-latest")
 AI_DAILY_CALL_LIMIT_PER_USER = env.int("AI_DAILY_CALL_LIMIT_PER_USER", default=30)
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
 

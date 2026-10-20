@@ -4,7 +4,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div style="margin-top: 24px; padding-bottom: 140px;">
+<div style="margin-top: 24px; padding-bottom: 230px;">
   <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
     <div style="display: flex; gap: 8px;">
       <a href="/texts/{{ text.id }}/" class="btn" style="font-size: 13px; padding: 6px 12px;">مشاهده متن</a>
@@ -51,6 +51,9 @@
         ← بازگشت به متن
       </button>
     </div>
+
+    <!-- AI Extraction Notice or Error Banner -->
+    <div id="entry-ai-error-banner" class="alert alert-error" style="display: none; margin-bottom: 16px; font-size: 13px; line-height: 1.6;"></div>
 
     <div class="table-container" style="margin-top: 0;">
       <table class="preview-table">

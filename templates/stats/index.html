@@ -30,7 +30,7 @@
   </style>
 
   <!-- Exciting Ranked Tier Banner (Dota 2 Style) -->
-  <div class="card" style="margin-bottom: 24px; padding: 22px; background: linear-gradient(135deg, rgba(20, 20, 28, 0.95), rgba(15, 15, 20, 0.98)); border: 1px solid {{ user_rank.color }}44; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); position: relative; overflow: visible;">
+  <div class="card" style="margin-bottom: 24px; padding: 20px 16px; background: linear-gradient(135deg, rgba(20, 20, 28, 0.95), rgba(15, 15, 20, 0.98)); border: 1px solid {{ user_rank.color }}44; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35); position: relative; overflow: hidden; max-width: 100%;">
     <div style="position: absolute; top: -30px; left: -30px; width: 120px; height: 120px; background: radial-gradient(circle, {{ user_rank.color }}22 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
@@ -52,7 +52,7 @@
         <div class="rank-info-icon" style="width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease;">
           !
         </div>
-        <div class="rank-tooltip-content" style="position: absolute; top: calc(100% + 8px); left: 0; width: 310px; max-width: 85vw; background: #18181f; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.65; color: #e2e8f0; box-shadow: 0 12px 28px rgba(0,0,0,0.5); z-index: 50; display: none; text-align: right; direction: rtl; pointer-events: none;">
+        <div class="rank-tooltip-content" style="position: absolute; top: calc(100% + 8px); right: 0; width: 280px; max-width: 80vw; background: #18181f; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.65; color: #e2e8f0; box-shadow: 0 12px 28px rgba(0,0,0,0.5); z-index: 50; display: none; text-align: right; direction: rtl; pointer-events: none;">
           🛡️ <strong>سیستم رنکینگ استمرار و یادگیری:</strong> امتیاز رنک شما از ترکیب تعداد واژگان فعال، لغات مسلط‌شده، تعداد مرورها و زنجیره استمرار روزانه محاسبه می‌شود. در صورت وقفه، امتیاز استمرار کاهش می‌یابد اما زحمات لغات و مرورهای شما محفوظ می‌ماند و رنک یک‌دفعه صفر نخواهد شد.
         </div>
       </div>
@@ -91,22 +91,22 @@
   </div>
 
   <!-- SRS Stage Breakdown -->
-  <div class="card" style="margin-bottom: 28px; padding: 24px;">
+  <div class="card" style="margin-bottom: 28px; padding: 20px 16px; overflow: hidden; max-width: 100%;">
     <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
       توزیع واژگان در مراحل ۸ گانه الگوریتم SRS
     </h2>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 8px; margin-bottom: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 6px; margin-bottom: 20px;">
       {% for stage_num, count in stage_counts.items %}
-        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 4px; text-align: center;">
-          <span class="text-muted" style="font-size: 11px; display: block;">مرحله {{ stage_num }}</span>
-          <span style="font-size: 18px; font-weight: 700; margin-top: 4px; display: block;">{{ count }}</span>
+        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 3px; text-align: center;">
+          <span class="text-muted" style="font-size: 10.5px; display: block;">مرحله {{ stage_num }}</span>
+          <span style="font-size: 17px; font-weight: 700; margin-top: 3px; display: block;">{{ count }}</span>
         </div>
       {% endfor %}
     </div>
 
     <!-- Phase summaries -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 13px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 13px;">
       <div style="background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
         <span class="text-muted" style="display: block; font-size: 11px;">🌱 کارت‌های جدید (مرحله ۰)</span>
         <strong>{{ new_cards_count }}</strong> واژه در صف شروع یادگیری
@@ -127,19 +127,21 @@
   </div>
 
   <!-- 30-Day Activity History -->
-  <div class="card" style="margin-bottom: 32px; padding: 24px;">
+  <div class="card" style="margin-bottom: 32px; padding: 20px 16px; overflow: hidden; max-width: 100%;">
     <h2 style="font-size: 17px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
       فعالیت ۳۰ روز اخیر
     </h2>
 
-    <div style="display: flex; align-items: flex-end; gap: 4px; height: 140px; padding: 10px 0; border-bottom: 1px solid var(--border); overflow-x: auto;">
-      {% for item in activity_30d %}
-        <div style="flex: 1; min-width: 16px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;" title="{{ item.date|date:'Y/m/d' }}: {{ item.count }} مرور">
-          <div
-            style="width: 100%; border-radius: 2px 2px 0 0; background: {% if item.count > 0 %}var(--text){% else %}var(--surface-2){% endif %}; height: {% widthratio item.count max_day_reviews 100 %}%; min-height: {% if item.count > 0 %}4px{% else %}1px{% endif %};"
-          ></div>
-        </div>
-      {% endfor %}
+    <div style="width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px;">
+      <div style="display: flex; align-items: flex-end; gap: 4px; height: 140px; min-width: 480px; padding: 10px 0; border-bottom: 1px solid var(--border);">
+        {% for item in activity_30d %}
+          <div style="flex: 1; min-width: 12px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;" title="{{ item.date|date:'Y/m/d' }}: {{ item.count }} مرور">
+            <div
+              style="width: 100%; border-radius: 2px 2px 0 0; background: {% if item.count > 0 %}var(--text){% else %}var(--surface-2){% endif %}; height: {% widthratio item.count max_day_reviews 100 %}%; min-height: {% if item.count > 0 %}4px{% else %}1px{% endif %};"
+            ></div>
+          </div>
+        {% endfor %}
+      </div>
     </div>
 
     <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 8px;">

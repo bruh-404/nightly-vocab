@@ -72,16 +72,19 @@ class GeminiProvider(AIProvider):
             },
         }
 
-    def _execute_request(self, url: str, body: dict) -> httpx.Response:
+    def _execute_request(self, url: str, body: dict, api_key: str = "") -> httpx.Response:
         """Executes HTTP POST with a 30s timeout and 1 automatic retry on transient failures."""
         attempts = 0
         last_exception = None
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["x-goog-api-key"] = api_key
 
         while attempts < 2:
             attempts += 1
             try:
                 with httpx.Client(timeout=self.timeout) as client:
-                    resp = client.post(url, json=body)
+                    resp = client.post(url, json=body, headers=headers)
 
                 if resp.status_code == 200:
                     return resp
@@ -125,15 +128,29 @@ class GeminiProvider(AIProvider):
         targets: List[Target],
         want_example: bool,
         api_key: str,
-        model: str = "gemini-1.5-flash",
+        model: str = "gemini-flash-latest",
     ) -> AnalysisResult:
         if not api_key:
             raise GeminiAIError("No API key provided for Gemini provider.", status_code=401)
 
-        url = f"{GEMINI_API_URL_TEMPLATE.format(model=model)}?key={api_key}"
+        # Normalize model name: ensure valid Gemini model
+        target_model = (model or "").strip()
+        if not target_model or "2.5" in target_model or target_model == "gemini":
+            target_model = "gemini-flash-latest"
+
+        url = f"{GEMINI_API_URL_TEMPLATE.format(model=target_model)}?key={api_key}"
         body = self._build_request_body(text, targets, want_example)
 
-        resp = self._execute_request(url, body)
+        try:
+            resp = self._execute_request(url, body, api_key=api_key)
+        except GeminiAIError as err:
+            # If the model was not found (404), automatically fallback to gemini-1.5-flash
+            if err.status_code == 404 and target_model != "gemini-1.5-flash":
+                fallback_model = "gemini-1.5-flash"
+                fallback_url = f"{GEMINI_API_URL_TEMPLATE.format(model=fallback_model)}?key={api_key}"
+                resp = self._execute_request(fallback_url, body, api_key=api_key)
+            else:
+                raise err
 
         try:
             data = resp.json()
@@ -215,16 +232,17 @@ class GeminiProvider(AIProvider):
         )
 
     @classmethod
-    def test_api_key(cls, raw_key: str, model: str = "gemini-2.5-flash") -> tuple[bool, str]:
+    def test_api_key(cls, raw_key: str, model: str = "gemini-flash-latest") -> tuple[bool, str]:
         """Tests an API key against Google Generative Language API with a lightweight call."""
         cleaned_key = (raw_key or "").strip()
         if not cleaned_key:
             return False, "کلید API نمی‌تواند خالی باشد."
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models?key={cleaned_key}"
+        headers = {"x-goog-api-key": cleaned_key}
         try:
-            with httpx.Client(timeout=10.0, follow_redirects=True) as client:
-                resp = client.get(url)
+            with httpx.Client(timeout=12.0, follow_redirects=True) as client:
+                resp = client.get(url, headers=headers)
 
             if resp.status_code == 200:
                 return True, ""

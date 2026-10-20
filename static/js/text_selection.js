@@ -834,6 +834,12 @@
         want_example: chkAiExample ? chkAiExample.checked : false,
       };
 
+      const aiBanner = document.getElementById("entry-ai-error-banner");
+      if (aiBanner) {
+        aiBanner.style.display = "none";
+        aiBanner.textContent = "";
+      }
+
       try {
         const res = await fetch(`/api/texts/${config.textId}/analyze/`, {
           method: "POST",
@@ -861,12 +867,24 @@
             }
           });
           showAlert("معانی و نقش‌های دستوری توسط هوش مصنوعی استخراج شدند.");
+          if (aiBanner) aiBanner.style.display = "none";
         } else {
-          showAlert(data.error || "سرویس هوش مصنوعی در دسترس نیست. می‌توانید معانی را دستی وارد کنید.");
+          const detail = data.detail ? ` (${data.detail})` : "";
+          const msg = (data.error || "سرویس هوش مصنوعی در دسترس نیست.") + detail;
+          showAlert(data.error || "خطا در ارتباط با هوش مصنوعی");
+          if (aiBanner) {
+            aiBanner.textContent = `⚠️ ${msg}`;
+            aiBanner.style.display = "block";
+          }
         }
       } catch (err) {
         console.error(err);
-        showAlert("خطای ارتباط با سرور. لطفاً معانی را به صورت دستی تکمیل کنید.");
+        const failMsg = "خطای ارتباط با سرور. لطفاً معانی را به صورت دستی تکمیل کنید.";
+        showAlert(failMsg);
+        if (aiBanner) {
+          aiBanner.textContent = `⚠️ ${failMsg}`;
+          aiBanner.style.display = "block";
+        }
       } finally {
         btnAiAnalyze.disabled = selections.length === 0;
         btnProceedToEntry.disabled = selections.length === 0;
@@ -883,6 +901,8 @@
 
   btnProceedToEntry.addEventListener("click", () => {
     if (selections.length === 0) return;
+    const aiBanner = document.getElementById("entry-ai-error-banner");
+    if (aiBanner) aiBanner.style.display = "none";
     populatePreviewTable();
     entrySection.style.display = "block";
     entrySection.scrollIntoView({ behavior: "smooth" });

@@ -195,7 +195,7 @@ ALLOWED_EMAILS=
 # Gemini AI Quota
 AI_PROVIDER=gemini
 GEMINI_API_KEY=${GEMINI_API_KEY}
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-flash-latest
 AI_DAILY_CALL_LIMIT_PER_USER=30
 
 # Telegram Bot
