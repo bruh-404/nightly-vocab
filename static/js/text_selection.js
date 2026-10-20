@@ -673,7 +673,7 @@
       { value: "phrasal verb", label: "Phrasal Verb" },
     ];
 
-    selections.forEach((sel) => {
+    selections.forEach((sel, index) => {
       const tr = document.createElement("tr");
 
       // Word / Phrase with editable Base Form (Lemma)
@@ -691,6 +691,71 @@
       const wordSpan = document.createElement("span");
       wordSpan.textContent = sel.text;
       origDiv.appendChild(wordSpan);
+
+      if (sel.example) {
+        const exContainer = document.createElement("div");
+        exContainer.className = "word-example-tooltip-wrap";
+        exContainer.style.position = "relative";
+        exContainer.style.display = "inline-flex";
+        exContainer.style.alignItems = "center";
+
+        const exBadge = document.createElement("button");
+        exBadge.type = "button";
+        exBadge.className = "btn-example-icon";
+        exBadge.innerHTML = "💡";
+        exBadge.title = "مشاهده مثال جمله‌ای هوش مصنوعی";
+
+        const exPopup = document.createElement("div");
+        exPopup.className = "example-popup-box";
+        exPopup.innerHTML = `
+          <div style="font-size: 11px; font-weight: 700; color: #818cf8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>✨ مثال جمله‌ای هوش مصنوعی</span>
+            <span style="font-size: 10px; opacity: 0.7;">(بستن ✕)</span>
+          </div>
+          <div style="direction: ltr; text-align: left; font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--text); line-height: 1.5; font-weight: 500;">
+            ${escapeHtml(sel.example)}
+          </div>
+        `;
+
+        const updatePopupPosition = () => {
+          const rect = exBadge.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const isBottomRows = index >= selections.length - 2;
+          if (spaceBelow < 220 || isBottomRows) {
+            exPopup.classList.add("popup-upwards");
+          } else {
+            exPopup.classList.remove("popup-upwards");
+          }
+        };
+
+        exBadge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isShown = exPopup.classList.contains("show");
+          document.querySelectorAll(".example-popup-box.show").forEach((p) => p.classList.remove("show"));
+          if (!isShown) {
+            updatePopupPosition();
+            exPopup.classList.add("show");
+          }
+        });
+
+        exBadge.addEventListener("mouseenter", () => {
+          updatePopupPosition();
+          exPopup.classList.add("show");
+        });
+
+        exContainer.addEventListener("mouseleave", () => {
+          exPopup.classList.remove("show");
+        });
+
+        exPopup.addEventListener("click", (e) => {
+          e.stopPropagation();
+          exPopup.classList.remove("show");
+        });
+
+        exContainer.appendChild(exBadge);
+        exContainer.appendChild(exPopup);
+        origDiv.appendChild(exContainer);
+      }
 
       if (sel.isEditing) {
         const editBadge = document.createElement("span");
@@ -742,58 +807,6 @@
       lemmaDiv.appendChild(inputLemma);
       tdWord.appendChild(lemmaDiv);
 
-      if (sel.example) {
-        const exContainer = document.createElement("div");
-        exContainer.className = "word-example-tooltip-wrap";
-        exContainer.style.position = "relative";
-        exContainer.style.display = "inline-flex";
-        exContainer.style.alignItems = "center";
-        exContainer.style.marginTop = "6px";
-
-        const exBadge = document.createElement("button");
-        exBadge.type = "button";
-        exBadge.className = "btn-example-tooltip";
-        exBadge.innerHTML = "💡 <span style='font-size: 11px;'>مثال جمله‌ای</span>";
-        exBadge.title = "برای مشاهده یا بستن مثال جمله‌ای کلیک کنید";
-
-        const exPopup = document.createElement("div");
-        exPopup.className = "example-popup-box";
-        exPopup.innerHTML = `
-          <div style="font-size: 11px; font-weight: 700; color: #818cf8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <span>✨ مثال جمله‌ای هوش مصنوعی</span>
-            <span style="font-size: 10px; opacity: 0.7;">(کلیک برای بستن)</span>
-          </div>
-          <div style="direction: ltr; text-align: left; font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--text); line-height: 1.5; font-weight: 500;">
-            ${escapeHtml(sel.example)}
-          </div>
-        `;
-
-        exBadge.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const isShown = exPopup.classList.contains("show");
-          document.querySelectorAll(".example-popup-box.show").forEach((p) => p.classList.remove("show"));
-          if (!isShown) {
-            exPopup.classList.add("show");
-          }
-        });
-
-        exBadge.addEventListener("mouseenter", () => {
-          exPopup.classList.add("show");
-        });
-
-        exContainer.addEventListener("mouseleave", () => {
-          exPopup.classList.remove("show");
-        });
-
-        exPopup.addEventListener("click", (e) => {
-          e.stopPropagation();
-          exPopup.classList.remove("show");
-        });
-
-        exContainer.appendChild(exBadge);
-        exContainer.appendChild(exPopup);
-        tdWord.appendChild(exContainer);
-      }
       tr.appendChild(tdWord);
 
       // POS select

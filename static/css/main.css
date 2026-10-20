@@ -584,26 +584,28 @@ select option {
 }
 
 /* AI Example Sentence Interactive Tooltip / Popover */
-.btn-example-tooltip {
+.btn-example-icon {
+  width: 24px;
+  height: 24px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(129, 140, 248, 0.12);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  color: #818cf8;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: var(--radius-sm);
+  justify-content: center;
+  background: rgba(129, 140, 248, 0.15);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.15s ease;
-  line-height: 1.4;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.btn-example-tooltip:hover {
-  background: rgba(129, 140, 248, 0.25);
+.btn-example-icon:hover {
+  background: rgba(129, 140, 248, 0.3);
   border-color: #818cf8;
-  color: #a5b4fc;
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.4);
 }
 
 .example-popup-box {
@@ -622,13 +624,27 @@ select option {
   pointer-events: auto;
 }
 
+.example-popup-box.popup-upwards {
+  top: auto !important;
+  bottom: calc(100% + 8px) !important;
+}
+
 .example-popup-box.show {
   display: block;
   animation: fadeInExamplePopup 0.18s ease forwards;
 }
 
+.example-popup-box.popup-upwards.show {
+  animation: fadeInExamplePopupUp 0.18s ease forwards;
+}
+
 @keyframes fadeInExamplePopup {
   from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInExamplePopupUp {
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 

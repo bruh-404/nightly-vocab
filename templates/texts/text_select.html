@@ -40,15 +40,18 @@
 
   <!-- Manual Entry Section / Modal (Collapsible) -->
   <div id="entry-section" class="card" style="display: none; margin-top: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 16px; gap: 12px;">
       <div>
         <h2 style="font-size: 18px; font-weight: 700;">تکمیل معانی کلمات انتخابی</h2>
         <p class="text-muted" style="font-size: 13px; margin-top: 4px;">
           معنی فارسی و نقش هر واژه را مشخص کنید تا در سیستم تکرار فاصله‌دار (SRS) قرار گیرد.
         </p>
       </div>
-      <button id="btn-back-to-select" type="button" class="btn" style="font-size: 13px;">
-        ← بازگشت به متن
+      <button id="btn-back-to-select" type="button" class="btn btn-icon" title="بازگشت به متن" aria-label="بازگشت به متن" style="min-height: 38px; width: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-md); flex-shrink: 0;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
       </button>
     </div>
 
