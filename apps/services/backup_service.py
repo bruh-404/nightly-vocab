@@ -303,9 +303,17 @@ def generate_user_backup_dict(user: User) -> Dict[str, Any]:
             "context_sentence": c.context_sentence,
             "ctx_start": c.ctx_start,
             "ctx_end": c.ctx_end,
+            "char_start": c.char_start,
+            "char_end": c.char_end,
             "source_text_title": c.source_text.title if c.source_text else None,
             "stage": c.stage,
             "target_type": c.target_type,
+            "interval_days": c.interval_days,
+            "next_review_date": c.next_review_date.isoformat() if c.next_review_date else None,
+            "last_reviewed_date": c.last_reviewed_date.isoformat() if c.last_reviewed_date else None,
+            "consecutive_wrong": c.consecutive_wrong,
+            "weak_indices": c.weak_indices,
+            "is_suspended": c.is_suspended,
             "ai_example": c.ai_example,
             "audio_url_us": c.audio_url_us,
             "audio_url_uk": c.audio_url_uk,
@@ -321,10 +329,15 @@ def generate_user_backup_dict(user: User) -> Dict[str, Any]:
     }
 
 
-def restore_user_backup(user: User, data: Dict[str, Any]) -> Dict[str, int]:
+def restore_user_backup(user: User, data: Dict[str, Any], reset_review: bool = True) -> Dict[str, int]:
     """
-    Imports vocabulary and texts into the specified user's account safely.
-    Does not touch other accounts or user settings.
+    Imports vocabulary and texts into the specified user's account safely:
+    - Never overwrites or deletes existing texts or cards.
+    - If a text or card already exists, it is preserved without modification.
+    - Only adds genuinely new texts and new cards.
+    - If reset_review is True, sets stage=0 and interval_days=0 for fresh learning from today.
+    - If reset_review is False, retains the saved SRS review stages and intervals.
+    - Never touches user credentials, emails, passwords, or profile configurations.
     """
     if data.get("export_type") not in (
         "nightly_vocab_user_personal_data",
@@ -334,50 +347,119 @@ def restore_user_backup(user: User, data: Dict[str, Any]) -> Dict[str, int]:
     ):
         raise ValueError("فرمت فایل پشتیبان نامعتبر است.")
 
-    stats = {"texts": 0, "cards": 0}
+    stats = {
+        "texts": 0,
+        "cards": 0,
+        "new_texts": 0,
+        "existing_texts": 0,
+        "new_cards": 0,
+        "existing_cards": 0,
+    }
+
+    now_date = timezone.localdate()
 
     with transaction.atomic():
-        # Restore texts
+        # 1. Safely import texts (do not overwrite existing ones)
         texts_map = {}
         for t_info in data.get("texts", []):
             title = t_info.get("title", "").strip()
             body = t_info.get("body", "").strip()
             if not title or not body:
                 continue
-            text_obj, created = Text.objects.update_or_create(
-                user=user,
-                title=title,
-                defaults={"body": body},
-            )
-            texts_map[title] = text_obj
-            stats["texts"] += 1
 
-        # Restore cards
+            existing_text = Text.objects.filter(user=user, title=title).first()
+            if existing_text:
+                texts_map[title] = existing_text
+                stats["existing_texts"] += 1
+            else:
+                new_text = Text.objects.create(
+                    user=user,
+                    title=title,
+                    body=body,
+                )
+                texts_map[title] = new_text
+                stats["new_texts"] += 1
+
+        # 2. Safely import cards (do not overwrite existing ones)
         for c_info in data.get("cards", []):
             word = c_info.get("word", "").strip()
             if not word:
                 continue
+
+            context_sentence = c_info.get("context_sentence", "")
+
+            # Check if card already exists for this user (prevent duplicate/replacement)
+            card_q = WordCard.objects.filter(user=user, word=word)
+            if context_sentence:
+                card_q = card_q.filter(context_sentence=context_sentence)
+
+            if card_q.exists():
+                stats["existing_cards"] += 1
+                continue
+
             src_title = c_info.get("source_text_title")
             source_text = texts_map.get(src_title)
 
-            WordCard.objects.update_or_create(
+            # Determine SRS parameters based on reset_review setting
+            if reset_review:
+                stage = 0
+                target_type = 1
+                interval_days = 0
+                next_review_date = now_date
+                last_reviewed_date = None
+                consecutive_wrong = 0
+                weak_indices = []
+            else:
+                stage = int(c_info.get("stage", 0))
+                target_type = int(c_info.get("target_type", 1))
+                interval_days = int(c_info.get("interval_days", 0))
+
+                next_d_str = c_info.get("next_review_date")
+                next_review_date = now_date
+                if next_d_str:
+                    try:
+                        next_review_date = datetime.fromisoformat(next_d_str).date()
+                    except Exception:
+                        next_review_date = now_date
+
+                last_d_str = c_info.get("last_reviewed_date")
+                last_reviewed_date = None
+                if last_d_str:
+                    try:
+                        last_reviewed_date = datetime.fromisoformat(last_d_str).date()
+                    except Exception:
+                        last_reviewed_date = None
+
+                consecutive_wrong = int(c_info.get("consecutive_wrong", 0))
+                weak_indices = c_info.get("weak_indices") or []
+
+            WordCard.objects.create(
                 user=user,
+                source_text=source_text,
                 word=word,
-                context_sentence=c_info.get("context_sentence", ""),
-                defaults={
-                    "source_text": source_text,
-                    "lemma": c_info.get("lemma", ""),
-                    "pos": c_info.get("pos", ""),
-                    "meaning": c_info.get("meaning", ""),
-                    "ctx_start": c_info.get("ctx_start", 0),
-                    "ctx_end": c_info.get("ctx_end", len(word)),
-                    "stage": c_info.get("stage", 0),
-                    "target_type": c_info.get("target_type", 1),
-                    "ai_example": c_info.get("ai_example", ""),
-                    "audio_url_us": c_info.get("audio_url_us", ""),
-                    "audio_url_uk": c_info.get("audio_url_uk", ""),
-                },
+                lemma=c_info.get("lemma", ""),
+                pos=c_info.get("pos", ""),
+                meaning=c_info.get("meaning", ""),
+                context_sentence=context_sentence,
+                ctx_start=c_info.get("ctx_start", 0),
+                ctx_end=c_info.get("ctx_end", len(word)),
+                char_start=c_info.get("char_start"),
+                char_end=c_info.get("char_end"),
+                stage=stage,
+                target_type=target_type,
+                interval_days=interval_days,
+                next_review_date=next_review_date,
+                last_reviewed_date=last_reviewed_date,
+                consecutive_wrong=consecutive_wrong,
+                weak_indices=weak_indices,
+                is_suspended=bool(c_info.get("is_suspended", False)),
+                ai_example=c_info.get("ai_example", ""),
+                audio_url_us=c_info.get("audio_url_us", ""),
+                audio_url_uk=c_info.get("audio_url_uk", ""),
             )
-            stats["cards"] += 1
+            stats["new_cards"] += 1
+
+        stats["texts"] = stats["new_texts"]
+        stats["cards"] = stats["new_cards"]
 
     return stats

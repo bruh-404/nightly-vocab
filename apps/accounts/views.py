@@ -569,10 +569,20 @@ def user_import_backup_api(request: HttpRequest) -> JsonResponse:
     try:
         content = backup_file.read().decode("utf-8")
         data = json.loads(content)
-        stats = restore_user_backup(request.user, data)
+        reset_review_raw = request.POST.get("reset_review", "true")
+        reset_review = str(reset_review_raw).strip().lower() in ("true", "1", "yes")
+
+        stats = restore_user_backup(request.user, data, reset_review=reset_review)
+
+        mode_desc = "شروع یادگیری از ابتدا (مرحله ۰)" if reset_review else "ادامه وضعیت مرور قبلی"
+        msg = f"بازیابی با موفقیت انجام شد: {stats['new_texts']} متن جدید و {stats['new_cards']} واژه جدید به حسابتان افزوده شدند ({mode_desc})."
+        if stats.get("existing_cards", 0) > 0:
+            msg += f" ضمناً {stats['existing_cards']} واژه که قبلاً در حسابتان وجود داشتند بدون تغییر حفظ شدند."
+
         return JsonResponse({
             "success": True,
-            "message": f"بازیابی با موفقیت انجام شد: {stats['texts']} متن و {stats['cards']} واژه به حساب شما افزوده شد.",
+            "message": msg,
+            "stats": stats,
         })
     except Exception as e:
         return JsonResponse({"error": f"خطا در خواندن و بازیابی فایل: {e}"}, status=400)

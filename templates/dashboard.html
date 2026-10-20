@@ -97,21 +97,21 @@
   {% if recent_texts %}
     <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 32px;">
       {% for text in recent_texts %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border);">
-          <div>
-            <a href="/texts/{{ text.id }}/" style="font-weight: 600; text-decoration: none; color: var(--text); font-size: 14px;">
+        <a href="/texts/{{ text.id }}/" class="recent-text-row" title="مشاهده متن {{ text.title }}">
+          <div style="flex: 1; min-width: 0; padding-left: 12px;">
+            <div class="recent-text-title" style="font-weight: 600; color: var(--text); font-size: 14.5px; direction: ltr; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               {{ text.title }}
-            </a>
-            <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
-              {{ text.created_at|date:"Y/m/d" }} • {{ text.cards_count }} کارت
+            </div>
+            <div class="text-muted" style="font-size: 12px; margin-top: 4px; display: flex; align-items: center; gap: 8px;">
+              <span>{{ text.created_at|date:"Y/m/d" }}</span>
+              <span>•</span>
+              <span class="brand-badge" style="font-size: 11px; padding: 1px 7px;">{{ text.cards_count }} کارت</span>
             </div>
           </div>
-          <div>
-            <a href="/texts/{{ text.id }}/select/" class="btn" style="font-size: 12px; padding: 4px 10px;">
-              انتخاب کلمات
-            </a>
+          <div style="color: var(--text-muted); opacity: 0.5; font-size: 18px; line-height: 1; flex-shrink: 0; margin-right: 8px;">
+            ‹
           </div>
-        </div>
+        </a>
       {% endfor %}
     </div>
   {% else %}
