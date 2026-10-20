@@ -137,9 +137,18 @@ update_app() {
     echo -e "${YELLOW}[3/4] Applying database migrations...${NC}"
     ${PYTHON_BIN} manage.py migrate --noinput --settings=config.settings.prod
 
+    # Sync Google SocialApp Authentication
+    echo -e "${YELLOW}[*] Syncing Google SocialApp authentication...${NC}"
+    ${PYTHON_BIN} -c "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.prod'); django.setup(); from apps.services.models import SiteConfig; SiteConfig.get().sync_google_social_app()" 2>/dev/null || true
+
     # Collect static files
     echo -e "${YELLOW}[4/4] Updating static assets...${NC}"
     ${PYTHON_BIN} manage.py collectstatic --noinput --settings=config.settings.prod
+
+    # Self-update global vocab binary
+    if [[ -f "${INSTALL_DIR}/scripts/vocab.sh" ]]; then
+        cp "${INSTALL_DIR}/scripts/vocab.sh" "/usr/local/bin/vocab" 2>/dev/null && chmod +x "/usr/local/bin/vocab" 2>/dev/null || true
+    fi
 
     # Restart service
     echo -e "${YELLOW}[*] Restarting service...${NC}"
