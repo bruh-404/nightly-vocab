@@ -98,7 +98,7 @@
     <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 32px;">
       {% for text in recent_texts %}
         <a href="/texts/{{ text.id }}/" class="recent-text-row" title="مشاهده متن {{ text.title }}">
-          <div style="flex: 1; min-width: 0; padding-left: 12px;">
+          <div style="flex: 1; min-width: 0;">
             <div class="recent-text-title" style="font-weight: 600; color: var(--text); font-size: 14.5px; direction: ltr; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               {{ text.title }}
             </div>
@@ -107,9 +107,6 @@
               <span>•</span>
               <span class="brand-badge" style="font-size: 11px; padding: 1px 7px;">{{ text.cards_count }} کارت</span>
             </div>
-          </div>
-          <div style="color: var(--text-muted); opacity: 0.5; font-size: 18px; line-height: 1; flex-shrink: 0; margin-right: 8px;">
-            ‹
           </div>
         </a>
       {% endfor %}
