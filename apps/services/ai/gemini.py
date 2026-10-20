@@ -1,6 +1,7 @@
 """Gemini implementation for structured JSON vocabulary analysis (Section 7.1)."""
 import json
 import logging
+import time
 from typing import Dict, List
 
 import httpx
@@ -99,9 +100,10 @@ class GeminiProvider(AIProvider):
                         is_quota=is_quota,
                     )
 
-                # 5xx server error, may retry once
+                # 5xx server error, may retry once after a short backoff
                 if attempts == 1:
-                    logger.warning("Gemini 5xx error, retrying once...")
+                    logger.warning("Gemini 5xx error (%d), retrying once...", resp.status_code)
+                    time.sleep(1.2)
                     continue
                 raise GeminiAIError(
                     f"Gemini API server error {resp.status_code}: {resp.text}",
@@ -112,6 +114,7 @@ class GeminiProvider(AIProvider):
                 last_exception = exc
                 if attempts == 1:
                     logger.warning("Network or timeout error calling Gemini, retrying once...")
+                    time.sleep(1.2)
                     continue
                 raise GeminiAIError(
                     f"Failed to communicate with Gemini API: {exc}",
@@ -128,29 +131,49 @@ class GeminiProvider(AIProvider):
         targets: List[Target],
         want_example: bool,
         api_key: str,
-        model: str = "gemini-flash-latest",
+        model: str = "gemini-2.0-flash",
     ) -> AnalysisResult:
         if not api_key:
             raise GeminiAIError("No API key provided for Gemini provider.", status_code=401)
 
-        # Normalize model name: ensure valid Gemini model
-        target_model = (model or "").strip()
-        if not target_model or "2.5" in target_model or target_model == "gemini":
-            target_model = "gemini-flash-latest"
+        # Build candidate models cascade: primary model followed by resilient fallbacks
+        primary = (model or "").strip()
+        if not primary or "2.5" in primary or primary == "gemini":
+            primary = "gemini-2.0-flash"
 
-        url = f"{GEMINI_API_URL_TEMPLATE.format(model=target_model)}?key={api_key}"
+        candidate_models = [primary]
+        for fb in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
+            if fb not in candidate_models:
+                candidate_models.append(fb)
+
         body = self._build_request_body(text, targets, want_example)
+        resp = None
+        last_err = None
 
-        try:
-            resp = self._execute_request(url, body, api_key=api_key)
-        except GeminiAIError as err:
-            # If the model was not found (404), automatically fallback to gemini-1.5-flash
-            if err.status_code == 404 and target_model != "gemini-1.5-flash":
-                fallback_model = "gemini-1.5-flash"
-                fallback_url = f"{GEMINI_API_URL_TEMPLATE.format(model=fallback_model)}?key={api_key}"
-                resp = self._execute_request(fallback_url, body, api_key=api_key)
-            else:
+        for candidate in candidate_models:
+            url = f"{GEMINI_API_URL_TEMPLATE.format(model=candidate)}?key={api_key}"
+            try:
+                resp = self._execute_request(url, body, api_key=api_key)
+                if resp and resp.status_code == 200:
+                    break
+            except GeminiAIError as err:
+                last_err = err
+                # 503 (model overloaded), 429 (model-specific limit), or 404 (model not found)
+                if err.status_code in (503, 429, 404):
+                    logger.warning(
+                        "Model %s failed with status %d (%s), trying next fallback model...",
+                        candidate,
+                        err.status_code,
+                        err,
+                    )
+                    time.sleep(1.0)
+                    continue
                 raise err
+
+        if not resp or resp.status_code != 200:
+            if last_err:
+                raise last_err
+            raise GeminiAIError("All candidate AI models were unavailable. Please try again.")
 
         try:
             data = resp.json()
