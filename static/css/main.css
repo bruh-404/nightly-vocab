@@ -556,6 +556,7 @@ select option {
 
 .preview-table {
   width: 100%;
+  min-width: 520px;
   border-collapse: collapse;
   text-align: right;
   font-size: 14px;
@@ -580,6 +581,55 @@ select option {
 .meaning-placeholder::placeholder {
   color: #777777;
   font-style: italic;
+}
+
+/* AI Example Sentence Interactive Tooltip / Popover */
+.btn-example-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(129, 140, 248, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  color: #818cf8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.btn-example-tooltip:hover {
+  background: rgba(129, 140, 248, 0.25);
+  border-color: #818cf8;
+  color: #a5b4fc;
+}
+
+.example-popup-box {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 250px;
+  max-width: 340px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.example-popup-box.show {
+  display: block;
+  animation: fadeInExamplePopup 0.18s ease forwards;
+}
+
+@keyframes fadeInExamplePopup {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Alerts */

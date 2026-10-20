@@ -38,6 +38,16 @@
   // Current active selections: Array<{ id: string, startIndex: number, endIndex: number, start: number, end: number, text: string, pos: string, meaning: string }>
   let selections = [];
   let phraseModeActive = false;
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
   let phraseModeFirstTok = null;
   let lastInteractedTok = null;
 
@@ -733,13 +743,56 @@
       tdWord.appendChild(lemmaDiv);
 
       if (sel.example) {
-        const exDiv = document.createElement("div");
-        exDiv.style.fontSize = "11px";
-        exDiv.style.color = "var(--muted)";
-        exDiv.style.marginTop = "4px";
-        exDiv.style.fontWeight = "normal";
-        exDiv.textContent = "مثال: " + sel.example;
-        tdWord.appendChild(exDiv);
+        const exContainer = document.createElement("div");
+        exContainer.className = "word-example-tooltip-wrap";
+        exContainer.style.position = "relative";
+        exContainer.style.display = "inline-flex";
+        exContainer.style.alignItems = "center";
+        exContainer.style.marginTop = "6px";
+
+        const exBadge = document.createElement("button");
+        exBadge.type = "button";
+        exBadge.className = "btn-example-tooltip";
+        exBadge.innerHTML = "💡 <span style='font-size: 11px;'>مثال جمله‌ای</span>";
+        exBadge.title = "برای مشاهده یا بستن مثال جمله‌ای کلیک کنید";
+
+        const exPopup = document.createElement("div");
+        exPopup.className = "example-popup-box";
+        exPopup.innerHTML = `
+          <div style="font-size: 11px; font-weight: 700; color: #818cf8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>✨ مثال جمله‌ای هوش مصنوعی</span>
+            <span style="font-size: 10px; opacity: 0.7;">(کلیک برای بستن)</span>
+          </div>
+          <div style="direction: ltr; text-align: left; font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--text); line-height: 1.5; font-weight: 500;">
+            ${escapeHtml(sel.example)}
+          </div>
+        `;
+
+        exBadge.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const isShown = exPopup.classList.contains("show");
+          document.querySelectorAll(".example-popup-box.show").forEach((p) => p.classList.remove("show"));
+          if (!isShown) {
+            exPopup.classList.add("show");
+          }
+        });
+
+        exBadge.addEventListener("mouseenter", () => {
+          exPopup.classList.add("show");
+        });
+
+        exContainer.addEventListener("mouseleave", () => {
+          exPopup.classList.remove("show");
+        });
+
+        exPopup.addEventListener("click", (e) => {
+          e.stopPropagation();
+          exPopup.classList.remove("show");
+        });
+
+        exContainer.appendChild(exBadge);
+        exContainer.appendChild(exPopup);
+        tdWord.appendChild(exContainer);
       }
       tr.appendChild(tdWord);
 
@@ -1019,5 +1072,11 @@
   if (btnSaveAndView) {
     btnSaveAndView.addEventListener("click", () => saveCardsAction("view"));
   }
+
+  // Dismiss open example popups on outside click
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".example-popup-box.show").forEach((p) => p.classList.remove("show"));
+  });
+
   window.saveCardsAction = saveCardsAction;
 })();
